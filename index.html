@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Dipping Report — H.alathm</title>
+<meta name="author" content="H.alathm">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+  if (typeof XLSX === "undefined") {
+    document.write('<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+  }
+</script>
+<script>
+  if (typeof XLSX === "undefined") {
+    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>');
+  }
+</script>
+<style>
+:root{
+  --BG:#F4F6F9;--CARD:#FFFFFF;--TEXT:#1F2937;--MUTED:#64748B;
+  --BORDER:#E2E8F0;--BORDER2:#CBD5E1;--PRIMARY:#0F4C81;
+  --RED:#DC2626;--GREEN:#047857;--HEADER_BG:#EEF3F9;
+  --BLUE:#2563EB;--AMBER:#D97706;--AMBER_BG:#FEF3C7;
+}
+*{box-sizing:border-box;font-family:"Segoe UI","Inter",Tahoma,Arial,sans-serif;}
+body{margin:0 auto;padding:14px;max-width:2100px;background:var(--BG);color:var(--TEXT);
+  min-height:100vh;font-size:13px;line-height:1.4;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:#F1F5F9;}
+::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:6px;}
+.card{background:var(--CARD);border:1px solid var(--BORDER);border-radius:10px;
+  padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(16,24,40,.05);}
+
+/* ============ APP HEADER ============ */
+.app-header{background:var(--PRIMARY);border:1px solid var(--PRIMARY);border-radius:10px;
+  padding:14px 18px;margin-bottom:10px;box-shadow:0 4px 14px rgba(15,76,129,.18);color:#fff;}
+
+/* ===== Top bar: branding + menus ===== */
+.header-top{display:flex;gap:14px;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.18);margin-bottom:14px;}
+
+.branding{display:flex;gap:12px;align-items:center;flex:1;min-width:280px;}
+.logo-box{
+  width:56px;height:56px;border-radius:10px;
+  background:rgba(255,255,255,.12);border:1.5px dashed rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;overflow:hidden;flex-shrink:0;
+  transition:background .15s,border-color .15s;}
+.logo-box:hover{background:rgba(255,255,255,.20);border-color:#fff;}
+.logo-box img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:8px;}
+.logo-box .logo-hint{font-size:9.5px;color:#BFD6EC;text-align:center;font-weight:700;
+  letter-spacing:.5px;line-height:1.2;pointer-events:none;}
+
+.company-name-input{
+  flex:1;min-width:180px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.28);
+  color:#fff;border-radius:8px;
+  padding:10px 14px;font-size:15px;font-weight:700;
+  outline:none;font-family:inherit;letter-spacing:.5px;}
+.company-name-input::placeholder{color:#9BB8D6;font-weight:600;font-size:13px;}
+.company-name-input:focus{border-color:#fff;background:rgba(255,255,255,.18);
+  box-shadow:0 0 0 3px rgba(255,255,255,.15);}
+
+/* ===== Dropdown menus ===== */
+.menus{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.menu{position:relative;}
+.menu-btn{
+  background:rgba(255,255,255,.12);color:#fff;
+  border:1px solid rgba(255,255,255,.25);
+  padding:8px 14px;font-size:12px;font-weight:700;
+  border-radius:8px;cursor:pointer;font-family:inherit;
+  letter-spacing:.5px;transition:background .15s,box-shadow .15s;
+  display:flex;align-items:center;gap:6px;}
+.menu-btn::after{content:"▾";font-size:9px;opacity:.75;margin-left:2px;}
+.menu-btn:hover{background:rgba(255,255,255,.22);}
+.menu.open .menu-btn{background:#fff;color:var(--PRIMARY);}
+
+.menu-items{
+  display:none;position:absolute;top:calc(100% + 6px);right:0;
+  min-width:220px;background:#fff;
+  border:1px solid var(--BORDER);border-radius:10px;
+  box-shadow:0 12px 36px rgba(15,23,42,.20);
+  z-index:300;overflow:hidden;
+  animation:fadeIn .12s ease-out;padding:6px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.menu.open .menu-items{display:block;}
+.menu-items a{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;color:var(--TEXT);
+  font-size:12.5px;font-weight:600;
+  text-decoration:none;cursor:pointer;
+  border-radius:7px;
+  transition:background .12s,color .12s;}
+.menu-items a:hover{background:#F1F5F9;color:var(--PRIMARY);}
+.menu-items a.danger:hover{background:#FEE2E2;color:#B91C1C;}
+.menu-items hr{border:none;border-top:1px solid #F1F5F9;margin:5px 0;}
+.menu-items .badge{
+  margin-left:auto;padding:1px 8px;border-radius:10px;
+  font-size:9.5px;font-weight:800;background:var(--HEADER_BG);color:var(--PRIMARY);}
+.menu-items .badge.ok{background:#E7F5EF;color:var(--GREEN);}
+.menu-items .badge.warn{background:var(--AMBER_BG);color:#92400E;}
+
+/* ===== Title ===== */
+.main-title{color:#fff;font-size:20px;font-weight:800;letter-spacing:4px;
+  text-align:center;margin:6px 0 4px 0;}
+.main-subtitle{color:#9BB8D6;font-size:10.5px;font-weight:600;letter-spacing:2px;
+  text-align:center;margin:0 0 16px 0;text-transform:uppercase;}
+
+/* ===== Station fields ===== */
+.header-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;
+  margin-bottom:4px;max-width:1100px;margin-left:auto;margin-right:auto;}
+@media(max-width:900px){.header-fields{grid-template-columns:1fr;}}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-group label{color:#BFD6EC;font-size:10.5px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;}
+.field-group input{background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:6px;
+  padding:8px 12px;font-size:13px;outline:none;width:100%;font-family:inherit;
+  transition:background .15s,border-color .15s;}
+.field-group input::placeholder{color:#9BB8D6;}
+.field-group input:focus{border-color:#fff;background:rgba(255,255,255,.20);
+  box-shadow:0 0 0 3px rgba(255,255,255,.18);}
+
+/* ===== Other components ===== */
+.edit-banner{display:none;background:var(--AMBER_BG);color:#92400E;border:1px solid #FCD34D;
+  padding:8px 14px;border-radius:8px;margin-bottom:10px;font-size:12.5px;font-weight:600;
+  align-items:center;gap:10px;}
+.edit-banner.show{display:flex;}
+.edit-banner .label{flex:1;}
+.edit-banner button{background:#92400E;color:#fff;padding:4px 12px;font-size:11.5px;border-radius:5px;border:none;cursor:pointer;font-weight:600;}
+
+.db-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:7px 12px;background:#fff;border:1px solid var(--BORDER);
+  border-radius:8px;margin-bottom:8px;font-size:11.5px;color:var(--MUTED);}
+.db-bar .chip{padding:2px 9px;border-radius:12px;font-size:10.5px;font-weight:700;
+  background:var(--HEADER_BG);color:var(--PRIMARY);}
+.db-bar .chip.ok{background:#E7F5EF;color:var(--GREEN);}
+.db-bar .chip.warn{background:var(--AMBER_BG);color:#92400E;}
+.db-bar .chip.hist{background:#DBEAFE;color:#1E40AF;}
+.db-bar .spacer{flex:1;}
+
+.section-title{color:var(--PRIMARY);font-weight:700;font-size:13px;letter-spacing:.3px;
+  text-align:left;padding:0 0 6px 10px;margin-bottom:8px;border-bottom:1px solid var(--BORDER);position:relative;}
+.section-title::before{content:"";position:absolute;left:0;top:2px;width:3px;height:14px;
+  background:var(--PRIMARY);border-radius:2px;}
+
+.table-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:7px 12px;background:#fff;border:1px solid var(--BORDER);
+  border-bottom:none;border-radius:8px 8px 0 0;font-size:11.5px;color:var(--MUTED);}
+.table-toolbar .count-chip{background:var(--HEADER_BG);color:var(--PRIMARY);
+  padding:2px 10px;border-radius:12px;font-size:10.5px;font-weight:700;margin-left:auto;}
+.table-wrap{overflow:auto;border:1px solid var(--BORDER);border-radius:0 0 8px 8px;
+  background:#fff;max-height:65vh;}
+table{border-collapse:collapse;width:100%;min-width:max-content;background:#fff;}
+thead th{position:sticky;top:0;z-index:2;background:var(--HEADER_BG);color:var(--PRIMARY);
+  font-weight:700;font-size:10px;letter-spacing:.2px;text-transform:uppercase;
+  padding:7px 4px;border-bottom:1px solid #D6DEE8;border-right:1px solid #E2E8F0;
+  text-align:center;line-height:1.2;min-width:80px;white-space:normal;}
+thead th:last-child{border-right:none;}
+thead th.corr-col{background:#E0F2FE;color:#0369A1;}
+tbody td{border-bottom:1px solid #EEF2F7;border-right:1px solid #EEF2F7;
+  padding:3px 4px;font-size:11.5px;text-align:center;white-space:nowrap;color:var(--TEXT);}
+tbody td:last-child{border-right:none;}
+tbody tr:hover td{background:#F8FAFC;}
+.tank-label{background:#FAFCFE;color:var(--PRIMARY);font-weight:700;font-size:12px;
+  padding:5px;text-align:left;padding-left:10px;}
+.calc-cell{background:#F8FAFC;font-weight:600;color:#334155;padding:4px 6px;
+  min-width:75px;font-variant-numeric:tabular-nums;}
+.calc-cell.bold{font-weight:700;color:var(--TEXT);}
+.calc-cell.pos{color:var(--GREEN);}
+.calc-cell.neg{color:var(--RED);}
+.calc-cell.red{background:var(--RED)!important;color:#fff!important;font-weight:800;}
+.corr-cell{background:#F0F9FF;font-weight:600;color:#0369A1;}
+.sugg-cell{background:#FFFBEB;color:#92400E;font-style:italic;font-size:11px;
+  text-align:left;padding:4px 8px;white-space:normal;max-width:220px;}
+td input,td select{width:100%;min-width:70px;padding:4px 5px;font-size:11.5px;
+  text-align:center;border:1px solid var(--BORDER2);border-radius:4px;outline:none;
+  background:#fff;color:var(--TEXT);font-family:inherit;}
+td input:focus,td select:focus{border-color:var(--PRIMARY);box-shadow:0 0 0 3px rgba(15,76,129,.12);}
+td select{cursor:pointer;text-align:left;}
+.empty-state{padding:50px 20px;text-align:center;background:#fff;
+  border:1px solid var(--BORDER);border-radius:8px;}
+.empty-state .icon{font-size:48px;margin-bottom:14px;}
+.empty-state h3{color:var(--PRIMARY);font-size:15px;margin:0 0 8px 0;font-weight:700;}
+.empty-state p{color:var(--MUTED);font-size:12.5px;margin:0;line-height:1.6;}
+.hist-wrap{margin-top:12px;overflow:auto;border:1px solid var(--BORDER);border-radius:8px;
+  background:#fff;max-height:250px;}
+.hist-table{width:100%;border-collapse:collapse;min-width:max-content;}
+.hist-table th{background:var(--HEADER_BG);color:var(--PRIMARY);font-weight:700;
+  font-size:10.5px;text-transform:uppercase;padding:7px 6px;
+  border-bottom:1px solid #D6DEE8;border-right:1px solid #E2E8F0;text-align:center;}
+.hist-table th:last-child{border-right:none;}
+.hist-table td{border-bottom:1px solid #EEF2F7;border-right:1px solid #EEF2F7;
+  padding:4px 8px;font-size:11.5px;text-align:center;}
+.hist-table td:last-child{border-right:none;}
+.hist-table tr:hover td{background:#F8FAFC;}
+.hist-table td.neg{color:var(--RED);font-weight:700;}
+.hist-table td.pos{color:var(--GREEN);font-weight:700;}
+.hist-empty{padding:20px;text-align:center;color:var(--MUTED);font-size:12px;font-style:italic;}
+.status-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  padding:9px 14px;border-radius:10px;background:#fff;border:1px solid var(--BORDER);
+  margin-top:4px;font-size:12px;color:var(--MUTED);font-weight:600;}
+#statusLabel{color:var(--GREEN);}
+.footer-signature{text-align:center;padding:14px 20px;margin-top:10px;
+  color:var(--MUTED);font-size:11px;letter-spacing:1.5px;font-weight:600;}
+.footer-signature .sig{color:var(--PRIMARY);font-weight:800;letter-spacing:2px;
+  font-family:"Consolas","Courier New",monospace;font-size:13px;}
+.footer-signature .sep{margin:0 10px;color:var(--BORDER2);}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--PRIMARY);color:#fff;padding:9px 20px;border-radius:8px;
+  font-weight:600;font-size:12.5px;opacity:0;transition:.25s;z-index:2000;
+  pointer-events:none;box-shadow:0 8px 24px rgba(15,23,42,.25);max-width:85vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--RED);}
+.toast.success{background:var(--GREEN);}
+.toast.warn{background:var(--AMBER);}
+#storageWarn{display:none;background:#FFF7ED;color:#9A3412;padding:8px 12px;
+  border-radius:8px;margin-bottom:10px;font-size:12px;border:1px solid #FED7AA;font-weight:600;}
+.loading-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);
+  display:none;justify-content:center;align-items:center;z-index:1500;}
+.loading-overlay.show{display:flex;}
+.loading-box{background:#fff;border-radius:12px;padding:26px 34px;text-align:center;
+  box-shadow:0 20px 50px rgba(15,23,42,.3);}
+.loading-box .spinner{width:36px;height:36px;border:3px solid #E2E8F0;border-top-color:var(--PRIMARY);
+  border-radius:50%;margin:0 auto 12px;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-box p{color:var(--PRIMARY);font-size:13px;font-weight:600;margin:0;}
+</style>
+</head>
+<body>
+
+<div id="storageWarn">⚠️ Your browser blocks local storage. Data will only be kept in memory.</div>
+
+<!-- ================= APP HEADER ================= -->
+<div class="app-header">
+  <div class="header-top">
+    <!-- Company Branding -->
+    <div class="branding">
+      <div class="logo-box" id="logoBox" title="Click to upload logo">
+        <img id="companyLogoImg" style="display:none;" alt="Logo">
+        <span class="logo-hint" id="logoHint">📷<br>Logo</span>
+      </div>
+      <input id="companyNameInput" class="company-name-input" type="text"
+             placeholder="Company Name" maxlength="60">
+    </div>
+
+    <!-- Dropdown Menus -->
+    <div class="menus">
+      <div class="menu" data-menu="data">
+        <button class="menu-btn">📁 DATA</button>
+        <div class="menu-items">
+          <a id="importBtn">📂 Import Excel</a>
+          <a id="saveBtn">💾 Save Report</a>
+          <a id="loadDayBtn">🔍 Load Day</a>
+          <hr>
+          <a id="clearBtn" class="danger">🧹 Clear All Values</a>
+        </div>
+      </div>
+
+      <div class="menu" data-menu="export">
+        <button class="menu-btn">📤 EXPORT</button>
+        <div class="menu-items">
+          <a id="exportExcelBtn">📊 Export to Excel</a>
+          <a id="exportPdfBtn">📄 Export to PDF</a>
+        </div>
+      </div>
+
+      <div class="menu" data-menu="backup">
+        <button class="menu-btn">💾 BACKUP</button>
+        <div class="menu-items">
+          <a id="linkFolderBtn">📁 Link Backup Folder</a>
+          <a id="restoreFolderBtn">📂 Restore from Folder</a>
+          <a id="reconnectBtn" style="display:none;">🔌 Reconnect Folder</a>
+          <a id="unlinkFolderBtn" class="danger">🔓 Unlink Backup</a>
+          <hr>
+          <a id="downloadNowBtn">⬇️ Download JSON Now</a>
+          <a id="loadJsonBtn">📄 Open JSON File</a>
+        </div>
+      </div>
+
+      <div class="menu" data-menu="branding">
+        <button class="menu-btn">🎨 BRANDING</button>
+        <div class="menu-items">
+          <a id="uploadLogoBtn">🖼️ Upload Company Logo</a>
+          <a id="removeLogoBtn" class="danger">🗑️ Remove Logo</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <h1 class="main-title">MANUAL DIPPING REPORT</h1>
+  <p class="main-subtitle">Designed &amp; Developed by H.alathm</p>
+
+  <!-- Station fields -->
+  <div class="header-fields">
+    <div class="field-group">
+      <label for="stationName">STATION NAME</label>
+      <input id="stationName" type="text" placeholder="Enter station name">
+    </div>
+    <div class="field-group">
+      <label for="stationCode">STATION CODE</label>
+      <input id="stationCode" type="text" placeholder="Enter station code">
+    </div>
+    <div class="field-group">
+      <label for="reportDate">DATE</label>
+      <input id="reportDate" type="text" placeholder="DD-MM-YYYY">
+    </div>
+  </div>
+</div>
+
+<!-- ================= EDIT BANNER ================= -->
+<div class="edit-banner" id="editBanner">
+  <span class="label" id="editBannerText">✏️ Editing day: —</span>
+  <button id="exitEditBtn">Exit Edit Mode</button>
+</div>
+
+<!-- ================= DB STATUS BAR ================= -->
+<div class="db-bar">
+  <span style="font-weight:700;color:var(--PRIMARY);">💾 Status:</span>
+  <span class="chip ok" id="localChip">✅ Auto-saved</span>
+  <span class="chip" id="folderStatusChip">Not linked</span>
+  <span id="folderName" style="color:var(--MUTED);">—</span>
+  <span class="chip hist" id="historyChip" style="display:none;">0 records</span>
+  <span id="dbLastSaved" style="color:var(--MUTED);"></span>
+</div>
+
+<!-- ================= MAIN TABLE ================= -->
+<div class="card" style="padding:0;">
+  <div class="table-toolbar">
+    <span>Tanks come from the imported Excel file — one tank per sheet.</span>
+    <span class="count-chip" id="tankCountChip">0 tanks</span>
+  </div>
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table id="dippingTable">
+      <thead>
+        <tr>
+          <th>Tank</th><th>Product</th><th>TLS (MM)</th><th>TLS (Ltrs)</th>
+          <th>TLS Chart (L)</th><th>Diff TLS-Chart (L)</th><th>Manual (MM)</th>
+          <th>Diff MM (D-H)</th><th>Manual Chart (L)</th><th>Diff Ltrs (F-J)</th>
+          <th class="corr-col">Correction (MM)</th><th class="corr-col">Correction (Ltrs)</th>
+          <th class="corr-col">Correction (%)</th><th class="corr-col">Suggestion</th>
+        </tr>
+      </thead>
+      <tbody id="dippingBody"></tbody>
+    </table>
+  </div>
+  <div id="emptyState" class="empty-state">
+    <div class="icon">📊</div>
+    <h3>No tanks loaded yet</h3>
+    <p>Use the <strong>📁 DATA ▾</strong> menu → <strong>Import Excel</strong> to load your tanks.<br>
+       Each sheet in the Excel file will become a tank with its own calibration chart.</p>
+  </div>
+</div>
+
+<!-- ================= HISTORY ================= -->
+<div class="card">
+  <div class="section-title">Previous Records (Manual Dipping History)</div>
+  <div class="hist-wrap">
+    <table class="hist-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Date</th><th>Tank</th><th>Product</th>
+          <th>TLS (MM)</th><th>TLS (Ltrs)</th><th>Manual (MM)</th>
+          <th>Diff MM</th><th>Manual Chart (L)</th><th>Diff Ltrs</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+    <div id="histEmpty" class="hist-empty">No records yet. Save a report to see it here.</div>
+  </div>
+</div>
+
+<!-- ================= STATUS ================= -->
+<div class="status-bar">
+  <span id="statusLabel">Loading...</span>
+  <span id="statusDetail"></span>
+</div>
+
+<!-- ================= FOOTER ================= -->
+<div class="footer-signature">
+  <span>© 2026</span>
+  <span class="sep">|</span>
+  <span>Manual Dipping Report</span>
+  <span class="sep">|</span>
+  <span class="sig">H.alathm</span>
+</div>
+
+<!-- ================= HIDDEN INPUTS ================= -->
+<input type="file" id="importFileInput" accept=".xlsx,.xlsm,.xls,.csv" style="display:none">
+<input type="file" id="loadJsonInput" accept=".json" style="display:none">
+<input type="file" id="logoFileInput" accept="image/*" style="display:none">
+
+<div class="toast" id="toast"></div>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p id="loadingText">Loading database...</p>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Manual Dipping Report — Author: H.alathm
+   ========================================================= */
+const AUTHOR = "H.alathm";
+const PRODUCTS = ["Unleaded 90", "Unleaded 95", "Diesel", "Kerosene"];
+const RED_THRESHOLD = -10;
+const DB_VERSION = 4;
+const DECIMALS = 3;
+const BACKUP_FILENAME = "ManualDipping_DB.json";
+
+let charts = {};
+let rowWidgets = {};
+let tankOrder = [];
+let currentWorkbookName = "";
+let history = [];
+let historyNextId = 1;
+let _saveTimer = null;
+let _suppressAutoSave = false;
+let dbDirHandle = null;
+let dbFileHandle = null;
+let folderName = "";
+let dirPickerSupported = ("showDirectoryPicker" in window);
+let filePickerSupported = ("showSaveFilePicker" in window);
+let needsReconnect = false;
+let editModeDate = null;
+let _autoReconnectListenerActive = false;
+
+/* Branding state */
+let companyName = "";
+let logoDataUrl = "";  // Base64 data URL
+
+/* =========================================================
+   SAFE STORAGE
+   ========================================================= */
+const _memStore = {};
+let _localStorageOK = true;
+try { localStorage.setItem("__t__","1"); localStorage.removeItem("__t__"); }
+catch(e){ _localStorageOK = false; document.getElementById("storageWarn").style.display = "block"; }
+function _storageGet(k){ try{return localStorage.getItem(k);}catch(e){return _memStore[k]!==undefined?_memStore[k]:null;} }
+function _storageSet(k,v){ try{localStorage.setItem(k,v);}catch(e){} _memStore[k]=v; }
+function _storageRemove(k){ try{localStorage.removeItem(k);}catch(e){} delete _memStore[k]; }
+const LS_STATE_KEY = "manual_dipping_state_v1";
+
+/* =========================================================
+   INDEXEDDB
+   ========================================================= */
+const IDB_NAME = "ManualDippingDB_v4";
+const IDB_STORE = "handles";
+const IDB_DIR_KEY = "backupDirHandle";
+const IDB_FILE_KEY = "backupFileHandle";
+const IDB_DATA_KEY = "dbDataFull";
+
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, val){
+  try{
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch(e){ return false; }
+}
+async function idbGet(key){
+  try{
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch(e){ return null; }
+}
+async function idbDelete(key){
+  try{
+    const db = await idbOpen();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch(e){ return false; }
+}
+async function saveFullDataToIDB(data){ return await idbSet(IDB_DATA_KEY, data); }
+async function loadFullDataFromIDB(){ return await idbGet(IDB_DATA_KEY); }
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function safeFloat(val, def){
+  if(def === undefined) def = 0;
+  if(val === null || val === undefined) return def;
+  let s = String(val).trim();
+  if(s === "") return def;
+  s = s.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660));
+  s = s.replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0));
+  s = s.replace(/[\s\u00A0\u202F]/g, "");
+  const hasComma = s.indexOf(",") !== -1;
+  const hasDot   = s.indexOf(".") !== -1;
+  if(hasComma && hasDot){
+    if(s.lastIndexOf(",") > s.lastIndexOf(".")){
+      s = s.replace(/\./g, ""); s = s.replace(",", ".");
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  } else if(hasComma){
+    const parts = s.split(",");
+    if(parts.length >= 2 && parts.slice(1).every(p => p.length === 3)){
+      s = s.replace(/,/g, "");
+    } else {
+      s = s.replace(",", ".");
+    }
+  }
+  s = s.replace(/[^\d.\-]/g, "");
+  if(s === "" || s === "-" || s === "." || s === "-.") return def;
+  const n = parseFloat(s);
+  return isNaN(n) ? def : n;
+}
+function fmtInput(val){
+  if(val === null || val === undefined || val === "") return "";
+  if(typeof val === "number"){
+    if(Number.isInteger(val)) return String(val);
+    return String(val);
+  }
+  return String(val);
+}
+function formatDateDDMMYYYY(d){
+  if(!(d instanceof Date) || isNaN(d.getTime())) d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return dd + "-" + mm + "-" + yyyy;
+}
+function escapeHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function fmtNum(n){
+  if(typeof n !== "number" || isNaN(n)) return "0." + "0".repeat(DECIMALS);
+  return n.toFixed(DECIMALS);
+}
+
+/* =========================================================
+   INTERPOLATION
+   ========================================================= */
+function getInterpolatedLiter(mmList, literList, mmValue){
+  for(let i = 0; i < mmList.length; i++){
+    if(Math.abs(mmList[i] - mmValue) < 0.0001) return literList[i];
+  }
+  for(let i = 0; i < mmList.length - 1; i++){
+    const mmLow = mmList[i], mmHigh = mmList[i+1];
+    if(mmLow < mmValue && mmValue < mmHigh){
+      const litLow = literList[i], litHigh = literList[i+1];
+      return litLow + ((mmValue - mmLow) / (mmHigh - mmLow)) * (litHigh - litLow);
+    }
+  }
+  return getClosestLiter(mmList, literList, mmValue);
+}
+function getClosestLiter(mmList, literList, mmValue){
+  if(!mmList || mmList.length === 0) return 0.0;
+  let minDiff = Infinity, closestIdx = 0;
+  for(let i = 0; i < mmList.length; i++){
+    const diff = Math.abs(mmList[i] - mmValue);
+    if(diff < minDiff){ minDiff = diff; closestIdx = i; }
+  }
+  return literList[closestIdx];
+}
+
+/* =========================================================
+   TOAST / STATUS / LOADING
+   ========================================================= */
+let _toastTm = null;
+function showToast(msg, type){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (type === "error" ? " error" : (type === "success" ? " success" : (type === "warn" ? " warn" : "")));
+  clearTimeout(_toastTm);
+  _toastTm = setTimeout(()=>{ t.className = "toast"; }, 3000);
+}
+function setStatus(main, detail, color){
+  document.getElementById("statusLabel").textContent = main;
+  document.getElementById("statusLabel").style.color = color || "var(--GREEN)";
+  document.getElementById("statusDetail").textContent = detail || "";
+}
+function showLoading(text){
+  document.getElementById("loadingText").textContent = text || "Please wait...";
+  document.getElementById("loadingOverlay").classList.add("show");
+}
+function hideLoading(){
+  document.getElementById("loadingOverlay").classList.remove("show");
+}
+
+/* =========================================================
+   DROPDOWN MENUS
+   ========================================================= */
+function closeAllMenus(){
+  document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+}
+document.querySelectorAll(".menu > .menu-btn").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = btn.parentElement;
+    const wasOpen = menu.classList.contains("open");
+    closeAllMenus();
+    if(!wasOpen) menu.classList.add("open");
+  });
+});
+document.addEventListener("click", closeAllMenus);
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape") closeAllMenus();
+});
+/* Close menu after clicking an item */
+document.querySelectorAll(".menu-items a").forEach(a => {
+  a.addEventListener("click", () => {
+    setTimeout(closeAllMenus, 100);
+  });
+});
+
+/* =========================================================
+   BRANDING (Company Logo + Name)
+   ========================================================= */
+function updateBrandingUI(){
+  const img = document.getElementById("companyLogoImg");
+  const hint = document.getElementById("logoHint");
+  if(logoDataUrl){
+    img.src = logoDataUrl;
+    img.style.display = "block";
+    hint.style.display = "none";
+  } else {
+    img.style.display = "none";
+    hint.style.display = "block";
+  }
+  document.getElementById("companyNameInput").value = companyName || "";
+}
+
+function uploadLogo(file){
+  if(!file) return;
+  if(!file.type.startsWith("image/")){
+    showToast("❌ Please select an image file", "error");
+    return;
+  }
+  if(file.size > 2 * 1024 * 1024){
+    if(!confirm("The logo file is larger than 2MB. It may slow down saving.\n\nContinue?")) return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    logoDataUrl = e.target.result;
+    updateBrandingUI();
+    scheduleSave();
+    showToast("✅ Logo uploaded", "success");
+  };
+  reader.onerror = function(){
+    showToast("❌ Failed to read logo file", "error");
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo(){
+  if(!logoDataUrl){
+    showToast("No logo to remove.", "warn");
+    return;
+  }
+  if(!confirm("Remove the company logo?")) return;
+  logoDataUrl = "";
+  updateBrandingUI();
+  scheduleSave();
+  showToast("🗑️ Logo removed", "success");
+}
+
+/* =========================================================
+   DB UI
+   ========================================================= */
+function updateDbUi(){
+  const chip = document.getElementById("folderStatusChip");
+  const nameEl = document.getElementById("folderName");
+  const lastEl = document.getElementById("dbLastSaved");
+  const histChip = document.getElementById("historyChip");
+  const reconnectBtn = document.getElementById("reconnectBtn");
+
+  if(!dirPickerSupported && !filePickerSupported){
+    chip.textContent = "Browser limited";
+    chip.className = "chip warn";
+    nameEl.textContent = "Use Download Now";
+    reconnectBtn.style.display = "none";
+  } else if(needsReconnect){
+    chip.textContent = "🔌 Reconnect needed";
+    chip.className = "chip warn";
+    nameEl.textContent = folderName || "(unnamed)";
+    reconnectBtn.style.display = "";
+  } else if(dbDirHandle){
+    chip.textContent = "✅ Folder linked";
+    chip.className = "chip ok";
+    nameEl.textContent = folderName || "(unnamed)";
+    reconnectBtn.style.display = "none";
+  } else if(dbFileHandle){
+    chip.textContent = "✅ File linked";
+    chip.className = "chip ok";
+    nameEl.textContent = folderName || "(unnamed)";
+    reconnectBtn.style.display = "none";
+  } else {
+    chip.textContent = "Not linked";
+    chip.className = "chip";
+    nameEl.textContent = "BACKUP ▾ → Link Folder";
+    reconnectBtn.style.display = "none";
+  }
+
+  const last = _storageGet("manual_dipping_db_last_saved");
+  lastEl.textContent = last ? "Last saved: " + last : "";
+
+  if(history && history.length > 0){
+    histChip.style.display = "";
+    histChip.textContent = history.length + " record" + (history.length === 1 ? "" : "s");
+  } else {
+    histChip.style.display = "none";
+  }
+}
+function markDbSaved(){
+  const ts = new Date().toLocaleTimeString();
+  _storageSet("manual_dipping_db_last_saved", ts);
+  const lastEl = document.getElementById("dbLastSaved");
+  if(lastEl) lastEl.textContent = "Last saved: " + ts;
+}
+
+/* =========================================================
+   DB SERIALIZE
+   ========================================================= */
+function buildDbObject(){
+  return {
+    version: DB_VERSION,
+    author: AUTHOR,
+    lastUpdated: new Date().toISOString(),
+    companyName: companyName || "",
+    logoDataUrl: logoDataUrl || "",
+    station: document.getElementById("stationName").value,
+    stationCode: document.getElementById("stationCode").value,
+    date: document.getElementById("reportDate").value,
+    workbookName: currentWorkbookName,
+    tanks: tankOrder.map(tankName => {
+      const w = rowWidgets[tankName];
+      if(!w) return null;
+      return {
+        name: tankName, product: w.prod.value,
+        tls_mm: w.tlsMm.value, tls_l: w.tlsL.value, man_mm: w.manMm.value,
+        chart: charts[tankName] || { mm: [], liters: [] }
+      };
+    }).filter(Boolean),
+    history: Array.isArray(history) ? history : [],
+    historyNextId: historyNextId
+  };
+}
+
+function applyDbObject(data){
+  if(!data || typeof data !== "object") return false;
+  companyName = data.companyName || "";
+  logoDataUrl = data.logoDataUrl || "";
+  updateBrandingUI();
+  document.getElementById("stationName").value = data.station || "";
+  document.getElementById("stationCode").value = data.stationCode || "";
+  document.getElementById("reportDate").value = data.date || formatDateDDMMYYYY(new Date());
+  currentWorkbookName = data.workbookName || "";
+  history = Array.isArray(data.history) ? data.history : [];
+  historyNextId = data.historyNextId || (history.length + 1);
+
+  charts = {};
+  const tanks = Array.isArray(data.tanks) ? data.tanks : [];
+  tanks.forEach(t => { charts[t.name] = t.chart || { mm: [], liters: [] }; });
+
+  if(tanks.length > 0){
+    buildTable(tanks.map(t => ({
+      tank: t.name, product: t.product,
+      tls_mm: t.tls_mm, tls_l: t.tls_l, man_mm: t.man_mm
+    })));
+  } else {
+    buildTable(null);
+  }
+  renderHistory();
+  updateDbUi();
+  return true;
+}
+
+/* =========================================================
+   BACKUP FUNCTIONS
+   ========================================================= */
+async function linkBackupFolder(){
+  if(dirPickerSupported){
+    try{
+      const dirHandle = await window.showDirectoryPicker({
+        id: "manualDippingBackup", mode: "readwrite", startIn: "documents"
+      });
+      dbDirHandle = dirHandle;
+      dbFileHandle = null;
+      folderName = dirHandle.name;
+      needsReconnect = false;
+      await idbSet(IDB_DIR_KEY, dirHandle);
+      await idbDelete(IDB_FILE_KEY);
+
+      try{
+        const fileHandle = await dirHandle.getFileHandle(BACKUP_FILENAME);
+        const file = await fileHandle.getFile();
+        if(file.size > 0){
+          const text = await file.text();
+          if(text.trim()){
+            const data = JSON.parse(text);
+            const hasCurrentData = (tankOrder.length > 0 || history.length > 0);
+            if(!hasCurrentData || confirm(
+              "The folder already contains a backup file:\n" + BACKUP_FILENAME + "\n\n" +
+              "(" + (data.tanks ? data.tanks.length : 0) + " tanks, " +
+              (data.history ? data.history.length : 0) + " records)\n\n" +
+              "OK = Load this backup\n" +
+              "Cancel = Keep current and overwrite the file")){
+              applyDbObject(data);
+            }
+          }
+        }
+      } catch(e){}
+
+      await saveToFolder(true);
+      updateDbUi();
+      setStatus("✅ Folder linked: " + folderName, BACKUP_FILENAME);
+      showToast("✅ Linked: " + folderName, "success");
+      return true;
+    } catch(err){
+      if(err.name === "AbortError") return false;
+      console.error(err);
+      showToast("❌ Failed to link folder: " + err.message, "error");
+      return false;
+    }
+  }
+
+  if(filePickerSupported){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: BACKUP_FILENAME,
+        types: [{ description: "JSON Backup", accept: { "application/json": [".json"] } }]
+      });
+      dbFileHandle = handle;
+      dbDirHandle = null;
+      folderName = handle.name;
+      needsReconnect = false;
+      await idbSet(IDB_FILE_KEY, handle);
+      await idbDelete(IDB_DIR_KEY);
+
+      try{
+        const file = await handle.getFile();
+        if(file.size > 0){
+          const text = await file.text();
+          if(text.trim()){
+            const data = JSON.parse(text);
+            const hasCurrentData = (tankOrder.length > 0 || history.length > 0);
+            if(!hasCurrentData || confirm("Existing backup found.\n\nOK = Load it\nCancel = Overwrite it")){
+              applyDbObject(data);
+            }
+          }
+        }
+      } catch(e){}
+
+      await saveToFile(true);
+      updateDbUi();
+      setStatus("✅ File linked: " + folderName, "");
+      showToast("✅ File linked: " + folderName, "success");
+      return true;
+    } catch(err){
+      if(err.name === "AbortError") return false;
+      console.error(err);
+      showToast("❌ Failed to link file: " + err.message, "error");
+      return false;
+    }
+  }
+
+  alert("❌ Your browser does not support automatic backup.\n\nUse 'Download JSON Now' instead.");
+  return false;
+}
+
+async function saveToFolder(silent){
+  if(!dbDirHandle) return false;
+  try{
+    let perm = await dbDirHandle.queryPermission({ mode: "readwrite" });
+    if(perm !== "granted") perm = await dbDirHandle.requestPermission({ mode: "readwrite" });
+    if(perm !== "granted"){
+      if(!silent) showToast("⚠️ Permission denied — saved locally only", "warn");
+      return false;
+    }
+    const data = buildDbObject();
+    const fileHandle = await dbDirHandle.getFileHandle(BACKUP_FILENAME, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    markDbSaved();
+    return true;
+  } catch(err){
+    console.error("saveToFolder failed:", err);
+    if(!silent) showToast("⚠️ Folder save failed — saved locally", "warn");
+    return false;
+  }
+}
+
+async function saveToFile(silent){
+  if(!dbFileHandle) return false;
+  try{
+    let perm = await dbFileHandle.queryPermission({ mode: "readwrite" });
+    if(perm !== "granted") perm = await dbFileHandle.requestPermission({ mode: "readwrite" });
+    if(perm !== "granted"){
+      if(!silent) showToast("⚠️ Permission denied — saved locally only", "warn");
+      return false;
+    }
+    const data = buildDbObject();
+    const writable = await dbFileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    markDbSaved();
+    return true;
+  } catch(err){
+    console.error("saveToFile failed:", err);
+    if(!silent) showToast("⚠️ File save failed — saved locally", "warn");
+    return false;
+  }
+}
+
+async function saveToBackup(silent){
+  if(dbDirHandle) return await saveToFolder(silent);
+  if(dbFileHandle) return await saveToFile(silent);
+  return false;
+}
+
+async function restoreFromFolder(){
+  if(!dirPickerSupported && !filePickerSupported){
+    showToast("❌ Browser does not support folder picker", "error");
+    return;
+  }
+  if(dirPickerSupported){
+    try{
+      const dirHandle = await window.showDirectoryPicker({
+        id: "manualDippingBackup", mode: "readwrite", startIn: "documents"
+      });
+      const fileHandle = await dirHandle.getFileHandle(BACKUP_FILENAME);
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      if(applyDbObject(data)){
+        dbDirHandle = dirHandle;
+        dbFileHandle = null;
+        folderName = dirHandle.name;
+        await idbSet(IDB_DIR_KEY, dirHandle);
+        await idbDelete(IDB_FILE_KEY);
+        needsReconnect = false;
+        updateDbUi();
+        await saveToFolder(true);
+        showToast("✅ Restored from: " + folderName, "success");
+        setStatus("✅ Restored from " + folderName, BACKUP_FILENAME);
+      }
+    } catch(err){
+      if(err.name === "AbortError") return;
+      console.error(err);
+      if(err.name === "NotFoundError"){
+        showToast("❌ No " + BACKUP_FILENAME + " in this folder", "error");
+      } else {
+        showToast("❌ Restore failed: " + err.message, "error");
+      }
+    }
+    return;
+  }
+  document.getElementById("loadJsonInput").click();
+}
+
+async function unlinkFolder(){
+  if(!dbDirHandle && !dbFileHandle && !needsReconnect){
+    showToast("No folder linked.", "error");
+    return;
+  }
+  if(!confirm("Unlink backup?\n\nData will still be saved in your browser.")) return;
+  dbDirHandle = null;
+  dbFileHandle = null;
+  folderName = "";
+  needsReconnect = false;
+  await idbDelete(IDB_DIR_KEY);
+  await idbDelete(IDB_FILE_KEY);
+  updateDbUi();
+  showToast("🔓 Backup unlinked", "success");
+}
+
+async function reconnectBackup(){
+  const dirHandle = await idbGet(IDB_DIR_KEY);
+  const fileHandle = await idbGet(IDB_FILE_KEY);
+
+  if(dirHandle){
+    try{
+      showLoading("Requesting permission...");
+      const perm = await dirHandle.requestPermission({ mode: "readwrite" });
+      if(perm === "granted"){
+        dbDirHandle = dirHandle;
+        folderName = dirHandle.name;
+        needsReconnect = false;
+        try{
+          const fileHandle2 = await dirHandle.getFileHandle(BACKUP_FILENAME);
+          const file = await fileHandle2.getFile();
+          if(file.size > 0){
+            const text = await file.text();
+            if(text.trim()){
+              const data = JSON.parse(text);
+              applyDbObject(data);
+              markDbSaved();
+              setStatus("✅ Reconnected", folderName);
+              showToast("✅ Reconnected: " + folderName, "success");
+            }
+          }
+        } catch(e){}
+      } else {
+        showToast("❌ Permission denied", "error");
+        needsReconnect = true;
+      }
+    } catch(err){
+      console.error(err);
+      needsReconnect = true;
+      showToast("❌ Reconnect failed", "error");
+    } finally {
+      hideLoading();
+      updateDbUi();
+    }
+    return;
+  }
+
+  if(fileHandle){
+    try{
+      showLoading("Requesting permission...");
+      const perm = await fileHandle.requestPermission({ mode: "readwrite" });
+      if(perm === "granted"){
+        dbFileHandle = fileHandle;
+        folderName = fileHandle.name;
+        needsReconnect = false;
+        try{
+          const file = await fileHandle.getFile();
+          if(file.size > 0){
+            const text = await file.text();
+            if(text.trim()){
+              const data = JSON.parse(text);
+              applyDbObject(data);
+              markDbSaved();
+              showToast("✅ Reconnected: " + folderName, "success");
+            }
+          }
+        } catch(e){}
+      } else {
+        showToast("❌ Permission denied", "error");
+        needsReconnect = true;
+      }
+    } catch(err){
+      console.error(err);
+      needsReconnect = true;
+      showToast("❌ Reconnect failed", "error");
+    } finally {
+      hideLoading();
+      updateDbUi();
+    }
+  }
+}
+
+async function tryAutoRestore(){
+  if(!dirPickerSupported && !filePickerSupported) return false;
+  const dirHandle = await idbGet(IDB_DIR_KEY);
+  const fileHandle = await idbGet(IDB_FILE_KEY);
+  const handle = dirHandle || fileHandle;
+  if(!handle) return false;
+
+  try{
+    const perm = await handle.queryPermission({ mode: "readwrite" });
+    if(perm === "granted"){
+      if(dirHandle){
+        dbDirHandle = dirHandle;
+        folderName = dirHandle.name;
+        needsReconnect = false;
+        try{
+          const fh = await dirHandle.getFileHandle(BACKUP_FILENAME);
+          const file = await fh.getFile();
+          if(file.size > 0){
+            const text = await file.text();
+            if(text.trim()){
+              const data = JSON.parse(text);
+              applyDbObject(data);
+              markDbSaved();
+              setStatus("✅ Auto-restored", folderName);
+              return true;
+            }
+          }
+        } catch(e){}
+        setStatus("✅ Folder linked", folderName);
+        return true;
+      } else {
+        dbFileHandle = fileHandle;
+        folderName = fileHandle.name;
+        needsReconnect = false;
+        try{
+          const file = await fileHandle.getFile();
+          if(file.size > 0){
+            const text = await file.text();
+            if(text.trim()){
+              const data = JSON.parse(text);
+              applyDbObject(data);
+              markDbSaved();
+              setStatus("✅ Auto-restored", folderName);
+              return true;
+            }
+          }
+        } catch(e){}
+        return true;
+      }
+    } else {
+      folderName = handle.name || "";
+      needsReconnect = true;
+      updateDbUi();
+      setStatus("💾 Data loaded • 🔌 Click 'Reconnect' to sync", folderName, "var(--AMBER)");
+      setupAutoReconnectOnClick();
+      return false;
+    }
+  } catch(err){
+    console.warn("Auto-restore failed:", err);
+    return false;
+  }
+}
+
+function setupAutoReconnectOnClick(){
+  if(_autoReconnectListenerActive) return;
+  _autoReconnectListenerActive = true;
+  const handler = async () => {
+    document.removeEventListener("click", handler, true);
+    _autoReconnectListenerActive = false;
+    if(!needsReconnect) return;
+    try{ await reconnectBackup(); } catch(e){ }
+  };
+  document.addEventListener("click", handler, true);
+}
+
+function downloadBackupNow(){
+  const data = buildDbObject();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const baseName = currentWorkbookName
+    ? currentWorkbookName.replace(/\.(xlsx?|xlsm)$/i, "")
+    : "ManualDipping";
+  a.href = url;
+  a.download = baseName + "_Backup_" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("⬇️ Backup downloaded", "success");
+}
+
+function loadJsonFile(){ document.getElementById("loadJsonInput").click(); }
+
+/* =========================================================
+   AUTO-SAVE
+   ========================================================= */
+function scheduleSave(){
+  if(_suppressAutoSave) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    const data = buildDbObject();
+    _storageSet(LS_STATE_KEY, JSON.stringify(data));
+    await saveFullDataToIDB(data);
+    if(dbDirHandle || dbFileHandle) await saveToBackup(true);
+  }, 400);
+}
+
+/* =========================================================
+   EXCEL-LIKE PASTE + ENTER
+   ========================================================= */
+function getCellAt(rowIdx, colIdx){
+  const tankName = tankOrder[rowIdx];
+  if(!tankName) return null;
+  const w = rowWidgets[tankName];
+  if(!w) return null;
+  const fieldMap = ["prod", "tlsMm", "tlsL", "manMm"];
+  return w[fieldMap[colIdx]] || null;
+}
+
+function attachExcelLike(grid, onAfterChange){
+  if(!grid || grid.length === 0) return;
+  const numRows = grid.length;
+  const numCols = Math.max(...grid.map(r => r ? r.length : 0));
+
+  const applyValue = (el, val) => {
+    if(!el) return;
+    if(el.tagName === "SELECT"){
+      const raw = String(val).trim();
+      let matched = "";
+      for(const opt of el.options){ if(opt.value === raw){ matched = opt.value; break; } }
+      if(matched === ""){
+        for(const opt of el.options){
+          if(opt.value.toLowerCase() === raw.toLowerCase()){ matched = opt.value; break; }
+        }
+      }
+      el.value = matched || "";
+    } else {
+      el.value = String(val).trim();
+    }
+  };
+
+  grid.forEach((row, r) => {
+    if(!row) return;
+    row.forEach((el, c) => {
+      if(!el || el._excelAttached) return;
+      el._excelAttached = true;
+
+      el.addEventListener("paste", function(e){
+        const clip = (e.clipboardData || window.clipboardData);
+        if(!clip) return;
+        const text = clip.getData("text");
+        if(!text) return;
+        if(!/[\t\n\r]/.test(text)) return;
+        e.preventDefault();
+        const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n");
+        if(lines.length > 1 && lines[lines.length-1] === "") lines.pop();
+
+        lines.forEach((line, dr) => {
+          const rr = r + dr;
+          if(rr >= numRows) return;
+          const cells = line.split("\t");
+          cells.forEach((val, dc) => {
+            const cc = c + dc;
+            if(cc >= numCols) return;
+            const target = getCellAt(rr, cc);
+            applyValue(target, val);
+          });
+        });
+
+        if(onAfterChange) onAfterChange();
+        scheduleSave();
+        showToast("📋 Pasted from Excel", "success");
+      });
+
+      el.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){
+          e.preventDefault();
+          let nr = e.shiftKey ? r - 1 : r + 1;
+          if(nr < 0) nr = 0;
+          if(nr >= tankOrder.length) nr = tankOrder.length - 1;
+          const target = getCellAt(nr, c);
+          if(target){ target.focus(); if(target.select) target.select(); }
+          if(onAfterChange) onAfterChange();
+        }
+      });
+    });
+  });
+}
+
+/* =========================================================
+   BUILD TABLE
+   ========================================================= */
+function buildTable(rowsData){
+  const tbody = document.getElementById("dippingBody");
+  const emptyState = document.getElementById("emptyState");
+  const tableWrap = document.getElementById("tableWrap");
+  tbody.innerHTML = "";
+  rowWidgets = {};
+  tankOrder = [];
+
+  if(!rowsData || rowsData.length === 0){
+    emptyState.style.display = "block";
+    tableWrap.style.display = "none";
+    updateTankCount();
+    return;
+  }
+
+  emptyState.style.display = "none";
+  tableWrap.style.display = "block";
+  const pasteGrid = [];
+
+  rowsData.forEach((row, i) => {
+    const tankName = (row.tank && String(row.tank).trim()) || ("Tank" + (i+1));
+    tankOrder.push(tankName);
+    if(!charts[tankName]) charts[tankName] = { mm: [], liters: [] };
+
+    const tr = document.createElement("tr");
+    const tdTank = document.createElement("td");
+    tdTank.className = "tank-label";
+    tdTank.textContent = tankName;
+    tr.appendChild(tdTank);
+
+    const tdProd = document.createElement("td");
+    const prodSelect = document.createElement("select");
+    PRODUCTS.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p;
+      prodSelect.appendChild(opt);
+    });
+    const incoming = (row.product || "").trim();
+    let matched = PRODUCTS[0];
+    for(const p of PRODUCTS){ if(p === incoming){ matched = p; break; } }
+    prodSelect.value = matched;
+    tdProd.appendChild(prodSelect);
+    tr.appendChild(tdProd);
+
+    const tdTlsMm = document.createElement("td");
+    const tlsMmInput = document.createElement("input");
+    tlsMmInput.type = "text"; tlsMmInput.inputMode = "decimal";
+    tlsMmInput.value = fmtInput(row.tls_mm);
+    tdTlsMm.appendChild(tlsMmInput);
+    tr.appendChild(tdTlsMm);
+
+    const tdTlsL = document.createElement("td");
+    const tlsLInput = document.createElement("input");
+    tlsLInput.type = "text"; tlsLInput.inputMode = "decimal";
+    tlsLInput.value = fmtInput(row.tls_l);
+    tdTlsL.appendChild(tlsLInput);
+    tr.appendChild(tdTlsL);
+
+    const tdF = document.createElement("td"); tdF.className = "calc-cell"; tr.appendChild(tdF);
+    const tdG = document.createElement("td"); tdG.className = "calc-cell bold"; tr.appendChild(tdG);
+
+    const tdManMm = document.createElement("td");
+    const manMmInput = document.createElement("input");
+    manMmInput.type = "text"; manMmInput.inputMode = "decimal";
+    manMmInput.value = fmtInput(row.man_mm);
+    tdManMm.appendChild(manMmInput);
+    tr.appendChild(tdManMm);
+
+    const tdI = document.createElement("td"); tdI.className = "calc-cell bold"; tr.appendChild(tdI);
+    const tdJ = document.createElement("td"); tdJ.className = "calc-cell"; tr.appendChild(tdJ);
+    const tdK = document.createElement("td"); tdK.className = "calc-cell bold"; tr.appendChild(tdK);
+    const tdCorrMm = document.createElement("td"); tdCorrMm.className = "corr-cell"; tr.appendChild(tdCorrMm);
+    const tdCorrL = document.createElement("td"); tdCorrL.className = "corr-cell"; tr.appendChild(tdCorrL);
+    const tdCorrPct = document.createElement("td"); tdCorrPct.className = "corr-cell"; tr.appendChild(tdCorrPct);
+    const tdSugg = document.createElement("td"); tdSugg.className = "sugg-cell"; tr.appendChild(tdSugg);
+
+    tbody.appendChild(tr);
+
+    rowWidgets[tankName] = {
+      prod: prodSelect, tlsMm: tlsMmInput, tlsL: tlsLInput, manMm: manMmInput,
+      F: tdF, G: tdG, I: tdI, J: tdJ, K: tdK,
+      corrMm: tdCorrMm, corrL: tdCorrL, corrPct: tdCorrPct, sugg: tdSugg,
+      _F_value: null, _J_value: null
+    };
+
+    pasteGrid.push([prodSelect, tlsMmInput, tlsLInput, manMmInput]);
+
+    tlsMmInput.addEventListener("input", () => { recalculateRow(tankName); scheduleSave(); });
+    manMmInput.addEventListener("input", () => { recalculateRow(tankName); scheduleSave(); });
+    tlsLInput.addEventListener("input", () => { recalculateRow(tankName); scheduleSave(); });
+    prodSelect.addEventListener("change", scheduleSave);
+
+    recalculateRow(tankName);
+  });
+
+  attachExcelLike(pasteGrid, () => {
+    Object.keys(rowWidgets).forEach(t => recalculateRow(t));
+  });
+
+  updateTankCount();
+}
+
+function updateTankCount(){
+  const chip = document.getElementById("tankCountChip");
+  if(chip) chip.textContent = tankOrder.length + " tank" + (tankOrder.length === 1 ? "" : "s");
+}
+
+/* =========================================================
+   RECALCULATE
+   ========================================================= */
+function recalculateRow(tankName){
+  const w = rowWidgets[tankName];
+  if(!w) return;
+  const chart = charts[tankName] || { mm: [], liters: [] };
+  const mmList = chart.mm, literList = chart.liters;
+
+  const tlsMmVal = safeFloat(w.tlsMm.value, 0);
+  const tlsLVal  = safeFloat(w.tlsL.value, 0);
+  const manMmVal = safeFloat(w.manMm.value, 0);
+
+  const F = getInterpolatedLiter(mmList, literList, tlsMmVal);
+  w._F_value = F;
+  const J = getInterpolatedLiter(mmList, literList, manMmVal);
+  w._J_value = J;
+
+  const G = tlsLVal - F;
+  const I = tlsMmVal - manMmVal;
+  const K = F - J;
+
+  w.F.textContent = fmtNum(F);
+  w.G.textContent = fmtNum(G);
+  w.G.classList.remove("pos","neg");
+  w.G.classList.add(G < 0 ? "neg" : "pos");
+
+  w.I.textContent = fmtNum(I);
+  w.I.classList.remove("red","pos","neg");
+  if(I <= RED_THRESHOLD){ w.I.classList.add("red"); }
+  else if(I < 0){ w.I.classList.add("neg"); }
+  else { w.I.classList.add("pos"); }
+
+  w.J.textContent = fmtNum(J);
+  w.K.textContent = fmtNum(K);
+  w.K.classList.remove("pos","neg");
+  w.K.classList.add(K < 0 ? "neg" : "pos");
+
+  const corr = calculateCorrection(I, K, tlsLVal);
+  w.corrMm.textContent = fmtNum(corr.corr_mm);
+  w.corrL.textContent = fmtNum(corr.corr_l);
+  w.corrPct.textContent = fmtNum(corr.corr_pct) + "%";
+  w.sugg.textContent = corr.suggestion;
+}
+
+function calculateCorrection(diff_mm, diff_final, tls_l){
+  if(Math.abs(diff_mm) < 0.01 && Math.abs(diff_final) < 0.01){
+    return { corr_mm: 0, corr_l: 0, corr_pct: 0, suggestion: "✅ Readings match, no correction needed" };
+  }
+  let pct = 0;
+  if(tls_l > 0) pct = (Math.abs(diff_final) / tls_l) * 100;
+
+  let suggestion = "";
+  if(Math.abs(diff_mm) > 0.1 && Math.abs(diff_final) > 0.1){
+    if(diff_mm > 0 && diff_final > 0){
+      suggestion = "⚠️ Add " + fmtNum(Math.abs(diff_mm)) + " mm to TLS, and add " + fmtNum(Math.abs(diff_final)) + " L to chart";
+    } else if(diff_mm < 0 && diff_final < 0){
+      suggestion = "⚠️ Subtract " + fmtNum(Math.abs(diff_mm)) + " mm from TLS, and subtract " + fmtNum(Math.abs(diff_final)) + " L from chart";
+    } else if(diff_mm > 0 && diff_final < 0){
+      suggestion = "⚠️ Add " + fmtNum(Math.abs(diff_mm)) + " mm to TLS, and subtract " + fmtNum(Math.abs(diff_final)) + " L from chart";
+    } else {
+      suggestion = "⚠️ Subtract " + fmtNum(Math.abs(diff_mm)) + " mm from TLS, and add " + fmtNum(Math.abs(diff_final)) + " L to chart";
+    }
+  } else if(Math.abs(diff_mm) > 0.1){
+    suggestion = diff_mm > 0 ? "⚠️ Add " + fmtNum(Math.abs(diff_mm)) + " mm to TLS" : "⚠️ Subtract " + fmtNum(Math.abs(diff_mm)) + " mm from TLS";
+  } else if(Math.abs(diff_final) > 0.1){
+    suggestion = diff_final > 0 ? "⚠️ Add " + fmtNum(Math.abs(diff_final)) + " L to chart" : "⚠️ Subtract " + fmtNum(Math.abs(diff_final)) + " L from chart";
+  } else {
+    suggestion = "✅ Fine, no action needed";
+  }
+
+  return { corr_mm: Math.abs(diff_mm), corr_l: Math.abs(diff_final), corr_pct: pct, suggestion: suggestion };
+}
+
+function clearRows(){
+  if(tankOrder.length === 0){ showToast("No tanks to clear.", "warn"); return; }
+  if(!confirm("Clear all TLS and Manual values for all tanks?")) return;
+  tankOrder.forEach(tankName => {
+    const w = rowWidgets[tankName];
+    if(!w) return;
+    w.tlsMm.value = "0"; w.tlsL.value = "0"; w.manMm.value = "0";
+  });
+  tankOrder.forEach(t => recalculateRow(t));
+  if(editModeDate){ editModeDate = null; updateEditModeUI(); }
+  scheduleSave();
+  setStatus("🧹 Cleared", "Ready for new entry");
+  showToast("🧹 Cleared values", "success");
+}
+
+/* =========================================================
+   IMPORT EXCEL
+   ========================================================= */
+function importTankCharts(file){
+  if(typeof XLSX === "undefined"){
+    alert("❌ Excel library failed to load!\n\nCheck internet and refresh (F5).");
+    showToast("❌ Excel library not loaded", "error");
+    return;
+  }
+  showLoading("Reading Excel file...");
+  setStatus("📖 Reading file...", file.name);
+
+  const reader = new FileReader();
+  reader.onerror = function(){
+    hideLoading();
+    alert("❌ Failed to read the file.");
+    showToast("❌ File read error", "error");
+  };
+
+  reader.onload = function(e){
+    try{
+      const srcWb = XLSX.read(e.target.result, { type: "array", cellDates: false });
+      if(!srcWb.SheetNames || srcWb.SheetNames.length === 0){
+        hideLoading(); alert("❌ The Excel file has no sheets."); return;
+      }
+
+      const imported = {};
+      const skipped = [];
+
+      srcWb.SheetNames.forEach(sheetName => {
+        const ws = srcWb.Sheets[sheetName];
+        const ref = ws["!ref"];
+        if(!ref){ skipped.push(sheetName + " (empty)"); return; }
+        const range = XLSX.utils.decode_range(ref);
+        const mmList = [], literList = [];
+        for(let r = 0; r <= range.e.r; r++){
+          const mmCell  = ws[XLSX.utils.encode_cell({ r, c: 0 })];
+          const litCell = ws[XLSX.utils.encode_cell({ r, c: 1 })];
+          if(!mmCell || !litCell) continue;
+          const mmNum  = typeof mmCell.v  === "number" ? mmCell.v  : safeFloat(mmCell.v,  NaN);
+          const litNum = typeof litCell.v === "number" ? litCell.v : safeFloat(litCell.v, NaN);
+          if(isNaN(mmNum) || isNaN(litNum)) continue;
+          mmList.push(mmNum); literList.push(litNum);
+        }
+        if(mmList.length >= 2){
+          const pairs = mmList.map((mm, i) => [mm, literList[i]]);
+          pairs.sort((a, b) => a[0] - b[0]);
+          imported[sheetName] = { mm: pairs.map(p => p[0]), liters: pairs.map(p => p[1]) };
+        } else {
+          skipped.push(sheetName + " (no valid data)");
+        }
+      });
+
+      if(Object.keys(imported).length === 0){
+        hideLoading();
+        alert("❌ No valid tank data found!\n\nEach sheet must have:\n• Column A = MM\n• Column B = Liters\n• At least 2 rows");
+        showToast("❌ No valid data", "error");
+        return;
+      }
+
+      charts = {};
+      const tankNames = Object.keys(imported);
+      tankNames.forEach(sheetName => { charts[sheetName] = imported[sheetName]; });
+
+      const rows = tankNames.map(tankName => ({
+        tank: tankName, product: PRODUCTS[0], tls_mm: 0, tls_l: 0, man_mm: 0
+      }));
+
+      buildTable(rows);
+      currentWorkbookName = file.name;
+
+      _suppressAutoSave = true;
+      const data = buildDbObject();
+      _storageSet(LS_STATE_KEY, JSON.stringify(data));
+      saveFullDataToIDB(data);
+      _suppressAutoSave = false;
+
+      hideLoading();
+      let msg = "✅ Imported " + tankNames.length + " tank(s) from:\n" + file.name + "\n\nTanks:\n  • " + tankNames.join("\n  • ");
+      if(skipped.length > 0) msg += "\n\n⚠️ Skipped:\n  • " + skipped.join("\n  • ");
+      alert(msg);
+      setStatus("✅ Imported " + tankNames.length + " tank(s)", tankNames.join(", "));
+      showToast("✅ Imported " + tankNames.length + " tank(s)", "success");
+      if(dbDirHandle || dbFileHandle) saveToBackup(true);
+    } catch(err){
+      hideLoading();
+      _suppressAutoSave = false;
+      console.error("Import error:", err);
+      alert("❌ Import failed!\n\nError: " + err.message);
+      showToast("❌ Import failed", "error");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* =========================================================
+   LOAD DAY
+   ========================================================= */
+function loadDayFromInput(){
+  if(tankOrder.length === 0){ showToast("⚠️ No tanks loaded.", "warn"); return; }
+  const input = document.getElementById("reportDate").value.trim();
+  if(!input){ showToast("⚠️ Please enter a date.", "warn"); return; }
+
+  let normalizedDate = null, displayDate = null;
+  let m = input.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if(m){
+    normalizedDate = m[1] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[3]).padStart(2,"0");
+    displayDate = String(m[3]).padStart(2,"0") + "-" + String(m[2]).padStart(2,"0") + "-" + m[1];
+  } else {
+    m = input.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    if(m){
+      normalizedDate = m[3] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[1]).padStart(2,"0");
+      displayDate = String(m[1]).padStart(2,"0") + "-" + String(m[2]).padStart(2,"0") + "-" + m[3];
+    }
+  }
+  if(!normalizedDate){ showToast("❌ Invalid date.", "error"); return; }
+
+  const records = history.filter(h => h.date === normalizedDate);
+  if(records.length === 0){ showToast("❌ No records for " + displayDate, "error"); return; }
+
+  const byTank = {};
+  records.forEach(r => { byTank[r.tank] = r; });
+
+  let loaded = 0, missing = [];
+  tankOrder.forEach(tankName => {
+    const w = rowWidgets[tankName];
+    if(!w) return;
+    const rec = byTank[tankName];
+    if(rec){
+      let matchedProd = PRODUCTS[0];
+      for(const p of PRODUCTS){ if(p === rec.product){ matchedProd = p; break; } }
+      w.prod.value = matchedProd;
+      w.tlsMm.value = fmtInput(rec.tls_mm);
+      w.tlsL.value = fmtInput(rec.tls_l);
+      w.manMm.value = fmtInput(rec.man_mm);
+      recalculateRow(tankName);
+      loaded++;
+    } else {
+      w.tlsMm.value = "0"; w.tlsL.value = "0"; w.manMm.value = "0";
+      recalculateRow(tankName);
+      missing.push(tankName);
+    }
+  });
+
+  document.getElementById("reportDate").value = displayDate;
+  editModeDate = normalizedDate;
+  updateEditModeUI();
+  scheduleSave();
+  setStatus("📅 Loaded " + displayDate, loaded + " tank(s)" + (missing.length ? " — " + missing.length + " missing" : ""), "var(--GREEN)");
+  showToast("📅 Loaded " + displayDate, "success");
+}
+
+function updateEditModeUI(){
+  const banner = document.getElementById("editBanner");
+  const bannerText = document.getElementById("editBannerText");
+  const saveBtn = document.getElementById("saveBtn");
+  if(editModeDate){
+    banner.classList.add("show");
+    bannerText.textContent = "✏️ Editing day: " + editModeDate;
+    saveBtn.textContent = "💾 Update This Day";
+    saveBtn.style.background = "#F59E0B";
+    saveBtn.style.color = "#fff";
+  } else {
+    banner.classList.remove("show");
+    saveBtn.textContent = "💾 Save Report";
+    saveBtn.style.background = "";
+    saveBtn.style.color = "";
+  }
+}
+function exitEditMode(){
+  editModeDate = null;
+  updateEditModeUI();
+  setStatus("Edit mode exited", "Normal mode");
+  showToast("Exited edit mode", "success");
+}
+
+/* =========================================================
+   SAVE RECORDS
+   ========================================================= */
+async function saveRecords(){
+  if(tankOrder.length === 0){ showToast("⚠️ No tanks loaded.", "warn"); return; }
+
+  const dateStr = document.getElementById("reportDate").value.trim();
+  const station = document.getElementById("stationName").value;
+  const stationCode = document.getElementById("stationCode").value;
+  if(!dateStr){ showToast("⚠️ Enter a date.", "warn"); return; }
+
+  let recordDate;
+  const m = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+  if(m){
+    const dd = parseInt(m[1], 10), mm = parseInt(m[2], 10), yy = parseInt(m[3], 10);
+    const year = yy < 100 ? 2000 + yy : yy;
+    recordDate = year + "-" + String(mm).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
+  } else {
+    const m2 = dateStr.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+    if(m2){
+      recordDate = m2[1] + "-" + String(m2[2]).padStart(2,"0") + "-" + String(m2[3]).padStart(2,"0");
+    } else {
+      showToast("❌ Invalid date format.", "error");
+      return;
+    }
+  }
+
+  if(editModeDate){
+    history = history.filter(h => h.date !== editModeDate);
+  } else {
+    const existing = history.filter(h => h.date === recordDate);
+    if(existing.length > 0){
+      if(confirm("Records for " + dateStr + " exist (" + existing.length + ").\n\nOK = Update\nCancel = Add duplicates")){
+        history = history.filter(h => h.date !== recordDate);
+      }
+    }
+  }
+
+  const prevHistory = history.slice();
+  const prevNextId = historyNextId;
+  let saved = 0;
+
+  tankOrder.forEach(tankName => {
+    const w = rowWidgets[tankName];
+    if(!w) return;
+    history.push({
+      id: historyNextId++,
+      date: recordDate,
+      station: station,
+      stationCode: stationCode,
+      tank: tankName,
+      product: w.prod.value,
+      tls_mm: safeFloat(w.tlsMm.value, 0),
+      tls_l: safeFloat(w.tlsL.value, 0),
+      chart_liters: parseFloat(w.F.textContent) || 0,
+      diff_tls_chart: parseFloat(w.G.textContent) || 0,
+      man_mm: safeFloat(w.manMm.value, 0),
+      diff_mm: parseFloat(w.I.textContent) || 0,
+      man_chart_liters: parseFloat(w.J.textContent) || 0,
+      diff_final: parseFloat(w.K.textContent) || 0
+    });
+    saved++;
+  });
+
+  const data = buildDbObject();
+  _storageSet(LS_STATE_KEY, JSON.stringify(data));
+  await saveFullDataToIDB(data);
+
+  let okBackup = true;
+  if(dbDirHandle || dbFileHandle) okBackup = await saveToBackup(false);
+  if(!okBackup && (dbDirHandle || dbFileHandle)){
+    history = prevHistory;
+    historyNextId = prevNextId;
+    showToast("❌ Save failed.", "error");
+    return;
+  }
+
+  renderHistory();
+  updateDbUi();
+  setStatus("💾 Saved", saved + " record(s)");
+  showToast("💾 Saved " + saved + " record(s)", "success");
+
+  if(editModeDate){ editModeDate = null; updateEditModeUI(); }
+}
+
+/* =========================================================
+   RENDER HISTORY
+   ========================================================= */
+function renderHistory(){
+  const tbody = document.getElementById("historyBody");
+  const histEmpty = document.getElementById("histEmpty");
+  tbody.innerHTML = "";
+  if(history.length === 0){ histEmpty.style.display = "block"; return; }
+  histEmpty.style.display = "none";
+
+  const sorted = history.slice().sort((a, b) => (b.id || 0) - (a.id || 0));
+  sorted.forEach(h => {
+    const tr = document.createElement("tr");
+    const diffMmClass = (h.diff_mm < 0) ? "neg" : "pos";
+    const diffFinalClass = (h.diff_final < 0) ? "neg" : "pos";
+    tr.innerHTML =
+      "<td>" + (h.id || "") + "</td>" +
+      "<td>" + escapeHtml(h.date || "") + "</td>" +
+      "<td>" + escapeHtml(h.tank || "") + "</td>" +
+      "<td>" + escapeHtml(h.product || "") + "</td>" +
+      "<td>" + fmtNum(h.tls_mm || 0) + "</td>" +
+      "<td>" + fmtNum(h.tls_l || 0) + "</td>" +
+      "<td>" + fmtNum(h.man_mm || 0) + "</td>" +
+      "<td class='" + diffMmClass + "'>" + fmtNum(h.diff_mm || 0) + "</td>" +
+      "<td>" + fmtNum(h.man_chart_liters || 0) + "</td>" +
+      "<td class='" + diffFinalClass + "'>" + fmtNum(h.diff_final || 0) + "</td>";
+    tbody.appendChild(tr);
+  });
+}
+
+/* =========================================================
+   EXPORT EXCEL — includes company name
+   ========================================================= */
+function exportExcel(){
+  if(typeof XLSX === "undefined"){
+    alert("❌ Excel library not loaded!\n\nCheck internet and refresh (F5).");
+    showToast("❌ Excel library not loaded", "error");
+    return;
+  }
+  if(tankOrder.length === 0){
+    alert("⚠️ No tanks to export!");
+    showToast("⚠️ No tanks", "warn");
+    return;
+  }
+
+  try{
+    const wb = XLSX.utils.book_new();
+    const station = document.getElementById("stationName").value || "";
+    const stationCode = document.getElementById("stationCode").value || "";
+
+    const aoa = [];
+    if(companyName) aoa.push([companyName]);
+    let title = station ? station : "Manual Dipping";
+    if(stationCode) title += " [" + stationCode + "]";
+    title += " - Manual Dipping Log";
+    aoa.push([title]);
+    aoa.push(["(Generated: " + new Date().toISOString().slice(0,16).replace("T"," ") + ")"]);
+    aoa.push(["Author: " + AUTHOR]);
+    aoa.push([]);
+    aoa.push([
+      "Tank", "Product", "TLS (MM)", "TLS (L)", "TLS Chart (L)", "Diff TLS-Chart",
+      "Manual (MM)", "Diff MM (D-H)", "Manual Chart (L)", "Diff Ltrs (F-J)",
+      "Correction (MM)", "Correction (Ltrs)", "Correction (%)", "Suggestion"
+    ]);
+
+    tankOrder.forEach(tankName => {
+      const w = rowWidgets[tankName];
+      if(!w) return;
+      aoa.push([
+        tankName, w.prod.value,
+        safeFloat(w.tlsMm.value, 0), safeFloat(w.tlsL.value, 0),
+        w._F_value != null ? w._F_value : 0,
+        (safeFloat(w.tlsL.value, 0) - (w._F_value || 0)),
+        safeFloat(w.manMm.value, 0),
+        (safeFloat(w.tlsMm.value, 0) - safeFloat(w.manMm.value, 0)),
+        w._J_value != null ? w._J_value : 0,
+        ((w._F_value || 0) - (w._J_value || 0)),
+        parseFloat(w.corrMm.textContent) || 0,
+        parseFloat(w.corrL.textContent) || 0,
+        parseFloat(w.corrPct.textContent) || 0,
+        w.sugg.textContent
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      {wch:10},{wch:14},{wch:12},{wch:12},{wch:14},{wch:16},
+      {wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:17},{wch:15},{wch:50}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, "Manual Dipping");
+
+    if(history.length > 0){
+      const histAoa = [
+        ["ID","Date","Station","Station Code","Tank","Product","TLS (MM)","TLS (L)","Chart (L)","Diff TLS-Chart",
+         "Manual (MM)","Diff MM","Manual Chart (L)","Diff Ltrs"]
+      ];
+      history.forEach(h => {
+        histAoa.push([
+          h.id, h.date, h.station || "", h.stationCode || "", h.tank, h.product,
+          h.tls_mm, h.tls_l, h.chart_liters, h.diff_tls_chart,
+          h.man_mm, h.diff_mm, h.man_chart_liters, h.diff_final
+        ]);
+      });
+      const wsHist = XLSX.utils.aoa_to_sheet(histAoa);
+      XLSX.utils.book_append_sheet(wb, wsHist, "History");
+    }
+
+    const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g, "").slice(0, 15);
+    const outName = "Manual_Dipping_" + timestamp + ".xlsx";
+    XLSX.writeFile(wb, outName);
+    setStatus("✅ Excel exported", outName);
+    showToast("📊 Excel exported", "success");
+  } catch(err){
+    console.error("Export Excel error:", err);
+    alert("❌ Excel export failed!\n\nError: " + err.message);
+    showToast("❌ Export failed", "error");
+  }
+}
+
+/* =========================================================
+   EXPORT PDF — includes logo + company name
+   ========================================================= */
+function exportPDF(){
+  if(tankOrder.length === 0){
+    alert("⚠️ No tanks to export!");
+    showToast("⚠️ No tanks", "warn");
+    return;
+  }
+
+  const station = document.getElementById("stationName").value;
+  const stationCode = document.getElementById("stationCode").value;
+  let title = station ? station : "Manual Dipping";
+  if(stationCode) title += " [" + stationCode + "]";
+  title += " - Manual Dipping Log";
+
+  const rowsData = tankOrder.map(tankName => {
+    const w = rowWidgets[tankName];
+    return [
+      tankName, w.prod.value,
+      fmtNum(safeFloat(w.tlsMm.value, 0)),
+      fmtNum(safeFloat(w.tlsL.value, 0)),
+      w.F.textContent, w.G.textContent,
+      fmtNum(safeFloat(w.manMm.value, 0)),
+      w.I.textContent, w.J.textContent, w.K.textContent,
+      w.corrMm.textContent, w.corrL.textContent, w.corrPct.textContent, w.sugg.textContent
+    ];
+  });
+
+  const headers = [
+    "Tank","Product","TLS (MM)","TLS (L)","TLS Chart (L)","Diff TLS-Chart",
+    "Manual (MM)","Diff MM (D-H)","Manual Chart (L)","Diff Ltrs (F-J)",
+    "Corr (MM)","Corr (Ltrs)","Corr (%)","Suggestion"
+  ];
+
+  let headerBranding = "";
+  if(logoDataUrl || companyName){
+    headerBranding = "<div style='display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;padding:10px;border-bottom:2px solid #0F4C81;'>";
+    if(logoDataUrl) headerBranding += "<img src='" + logoDataUrl + "' style='max-height:60px;max-width:140px;object-fit:contain;'>";
+    if(companyName) headerBranding += "<div style='font-size:16pt;font-weight:800;color:#0F4C81;letter-spacing:1px;'>" + escapeHtml(companyName) + "</div>";
+    headerBranding += "</div>";
+  }
+
+  let html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + escapeHtml(title) + "</title>" +
+"<style>@page{size:A4 landscape;margin:12mm;}" +
+"body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1F2937;margin:0;padding:0;}" +
+"h1{font-size:14pt;text-align:center;color:#0F4C81;margin:0 0 4px 0;letter-spacing:1px;}" +
+".subtitle{text-align:center;color:#475569;font-size:10pt;margin:0 0 12px 0;}" +
+"table{width:100%;border-collapse:collapse;table-layout:fixed;}" +
+"th{background:#2c3e50;color:#fff;padding:5px 3px;font-size:8pt;border:1px solid #94A3B8;text-align:center;word-wrap:break-word;}" +
+"td{border:1px solid #CBD5E1;padding:4px 3px;font-size:8pt;text-align:center;word-wrap:break-word;}" +
+"td.red{background:#DC2626 !important;color:#fff;font-weight:bold;}" +
+"td.neg{color:#DC2626;}td.pos{color:#047857;}" +
+"td.sugg{text-align:left;font-style:italic;font-size:7pt;color:#92400E;}" +
+"tr:nth-child(even) td{background:#F8FAFC;}" +
+".footer{margin-top:12px;text-align:center;color:#64748B;font-size:8pt;}" +
+".signature{margin-top:6px;text-align:center;color:#0F4C81;font-size:10pt;font-weight:800;letter-spacing:2px;font-family:Consolas,monospace;}" +
+"</style></head><body>" +
+headerBranding +
+"<h1>" + escapeHtml(title) + "</h1>" +
+"<p class='subtitle'>Date: " + escapeHtml(document.getElementById("reportDate").value) + "</p>" +
+"<table><colgroup>" +
+"<col style='width:6%'><col style='width:8%'><col style='width:6%'><col style='width:7%'>" +
+"<col style='width:7%'><col style='width:8%'><col style='width:7%'><col style='width:7%'>" +
+"<col style='width:7%'><col style='width:8%'><col style='width:7%'><col style='width:7%'>" +
+"<col style='width:6%'><col style='width:12%'></colgroup><thead><tr>";
+
+  headers.forEach(h => { html += "<th>" + h + "</th>"; });
+  html += "</tr></thead><tbody>";
+
+  rowsData.forEach(row => {
+    html += "<tr>";
+    row.forEach((cell, idx) => {
+      let cls = "";
+      if(idx === 7){
+        const n = parseFloat(cell);
+        if(!isNaN(n) && n <= RED_THRESHOLD) cls = "red";
+        else if(!isNaN(n) && n < 0) cls = "neg";
+        else if(!isNaN(n)) cls = "pos";
+      } else if(idx === 9){
+        const n = parseFloat(cell);
+        if(!isNaN(n)) cls = n < 0 ? "neg" : "pos";
+      } else if(idx === 13){ cls = "sugg"; }
+      html += "<td class='" + cls + "'>" + escapeHtml(String(cell)) + "</td>";
+    });
+    html += "</tr>";
+  });
+  html += "</tbody></table>" +
+          "<p class='footer'>Generated " + new Date().toLocaleString() + "</p>" +
+          "<p class='signature'>H.alathm</p>" +
+          "</body></html>";
+
+  let w = null;
+  try { w = window.open("", "_blank", "width=1300,height=800"); } catch(e){ w = null; }
+
+  if(w && !w.closed){
+    try {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
+      setStatus("✅ PDF preview opened", "Use Print → Save as PDF");
+      showToast("📄 PDF preview ready", "success");
+    } catch(err){
+      console.error(err);
+      fallbackPdfDownload(html);
+    }
+  } else {
+    fallbackPdfDownload(html);
+  }
+}
+
+function fallbackPdfDownload(html){
+  showToast("⚠️ Pop-up blocked — using iframe", "warn");
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0"; iframe.style.bottom = "0";
+  iframe.style.width = "0"; iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+  const doc = iframe.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  setTimeout(() => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch(e){
+      alert("❌ PDF export failed!\n\nPlease allow pop-ups and try again.");
+    }
+    setTimeout(() => { document.body.removeChild(iframe); }, 1000);
+  }, 400);
+}
+
+/* =========================================================
+   LOAD JSON
+   ========================================================= */
+function handleJsonFileInput(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      if(applyDbObject(data)){
+        showToast("✅ Loaded: " + file.name, "success");
+        setStatus("JSON loaded", file.name);
+        scheduleSave();
+      } else {
+        showToast("❌ Invalid JSON format", "error");
+      }
+    } catch(err){
+      showToast("❌ Failed to parse JSON: " + err.message, "error");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+async function init(){
+  /* Header field listeners */
+  document.getElementById("stationName").addEventListener("input", scheduleSave);
+  document.getElementById("stationCode").addEventListener("input", scheduleSave);
+  document.getElementById("reportDate").addEventListener("input", scheduleSave);
+  document.getElementById("companyNameInput").addEventListener("input", (e) => {
+    companyName = e.target.value;
+    scheduleSave();
+  });
+
+  /* Logo box click → trigger file input */
+  document.getElementById("logoBox").addEventListener("click", () => {
+    document.getElementById("logoFileInput").click();
+  });
+  document.getElementById("uploadLogoBtn").addEventListener("click", () => {
+    document.getElementById("logoFileInput").click();
+  });
+  document.getElementById("logoFileInput").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if(f) uploadLogo(f);
+    e.target.value = "";
+  });
+  document.getElementById("removeLogoBtn").addEventListener("click", removeLogo);
+
+  /* Data buttons */
+  document.getElementById("importBtn").addEventListener("click", () => {
+    document.getElementById("importFileInput").click();
+  });
+  document.getElementById("importFileInput").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if(f) importTankCharts(f);
+    e.target.value = "";
+  });
+  document.getElementById("saveBtn").addEventListener("click", saveRecords);
+  document.getElementById("loadDayBtn").addEventListener("click", loadDayFromInput);
+  document.getElementById("clearBtn").addEventListener("click", clearRows);
+  document.getElementById("exitEditBtn").addEventListener("click", exitEditMode);
+
+  /* Export buttons */
+  document.getElementById("exportExcelBtn").addEventListener("click", exportExcel);
+  document.getElementById("exportPdfBtn").addEventListener("click", exportPDF);
+
+  /* Backup buttons */
+  document.getElementById("linkFolderBtn").addEventListener("click", linkBackupFolder);
+  document.getElementById("restoreFolderBtn").addEventListener("click", restoreFromFolder);
+  document.getElementById("unlinkFolderBtn").addEventListener("click", unlinkFolder);
+  document.getElementById("downloadNowBtn").addEventListener("click", downloadBackupNow);
+  document.getElementById("loadJsonBtn").addEventListener("click", loadJsonFile);
+  document.getElementById("reconnectBtn").addEventListener("click", reconnectBackup);
+  document.getElementById("loadJsonInput").addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if(f) handleJsonFileInput(f);
+    e.target.value = "";
+  });
+
+  /* Default date */
+  document.getElementById("reportDate").value = formatDateDDMMYYYY(new Date());
+
+  /* Empty UI */
+  charts = {};
+  buildTable(null);
+  renderHistory();
+  updateEditModeUI();
+  updateBrandingUI();
+
+  /* Load data from IndexedDB */
+  let dataLoaded = false;
+  try {
+    const idbData = await loadFullDataFromIDB();
+    if(idbData && (idbData.tanks || idbData.history || idbData.companyName)){
+      applyDbObject(idbData);
+      dataLoaded = true;
+      setStatus("✅ Loaded from browser database", "Checking backup...");
+    }
+  } catch(e){ console.warn("IDB load failed:", e); }
+
+  /* Fallback: localStorage */
+  if(!dataLoaded){
+    const raw = _storageGet(LS_STATE_KEY);
+    if(raw){
+      try{
+        const data = JSON.parse(raw);
+        applyDbObject(data);
+        dataLoaded = true;
+        setStatus("✅ Loaded from browser cache", "Checking backup...");
+      } catch(e){}
+    }
+  }
+
+  /* Try auto-restore from backup folder */
+  try { await tryAutoRestore(); } catch(e){ console.warn("Auto-restore error:", e); }
+
+  updateDbUi();
+  updateEditModeUI();
+  updateBrandingUI();
+
+  /* Save on unload */
+  window.addEventListener("beforeunload", () => {
+    const data = buildDbObject();
+    _storageSet(LS_STATE_KEY, JSON.stringify(data));
+    saveFullDataToIDB(data);
+    if(dbDirHandle || dbFileHandle) saveToBackup(true);
+  });
+
+  /* Final status */
+  if(typeof XLSX === "undefined"){
+    const w = document.getElementById("storageWarn");
+    w.style.display = "block";
+    w.style.background = "#FEE2E2";
+    w.style.color = "#991B1B";
+    w.style.border = "1px solid #FCA5A5";
+    w.textContent = "❌ Excel library failed to load! Check your internet and refresh.";
+    setStatus("❌ Excel library not loaded", "Connect to internet and press F5", "var(--RED)");
+  } else if(needsReconnect){
+    // status set already
+  } else if(dbDirHandle || dbFileHandle){
+    setStatus("✅ Ready — auto-save active", "Backup: " + folderName);
+  } else if(dataLoaded){
+    setStatus("✅ Ready — data loaded", "Link backup folder for extra safety");
+  } else {
+    setStatus("✅ Ready", "Use DATA ▾ → Import Excel");
+  }
+}
+
+init();
+</script>
+</body>
+</html>
