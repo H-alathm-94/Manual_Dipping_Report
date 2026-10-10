@@ -6,7 +6,7 @@
 <meta name="author" content="H.alathm">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
-<title>Manual Dipping Report — H.alathm</title>
+<title>Manual Dipping Report </title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -92,6 +92,11 @@ body{margin:0 auto;padding:14px;max-width:2100px;background:var(--BG);color:var(
 .field-group input::placeholder{color:#9BB8D6;}
 .field-group input:focus{border-color:#fff;background:rgba(255,255,255,.20);
   box-shadow:0 0 0 3px rgba(255,255,255,.18);}
+.today-btn{padding:8px 12px;border-radius:6px;
+  border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);
+  color:#fff;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;
+  white-space:nowrap;transition:background .15s;}
+.today-btn:hover{background:rgba(255,255,255,.22);}
 .edit-banner{display:none;background:var(--AMBER_BG);color:#92400E;border:1px solid #FCD34D;
   padding:8px 14px;border-radius:8px;margin-bottom:10px;font-size:12.5px;font-weight:600;
   align-items:center;gap:10px;}
@@ -107,7 +112,6 @@ body{margin:0 auto;padding:14px;max-width:2100px;background:var(--BG);color:var(
 .db-bar .chip.ok{background:#E7F5EF;color:var(--GREEN);}
 .db-bar .chip.warn{background:var(--AMBER_BG);color:#92400E;}
 .db-bar .chip.hist{background:#DBEAFE;color:#1E40AF;}
-.db-bar .spacer{flex:1;}
 .section-title{color:var(--PRIMARY);font-weight:700;font-size:13px;letter-spacing:.3px;
   text-align:left;padding:0 0 6px 10px;margin-bottom:8px;border-bottom:1px solid var(--BORDER);position:relative;}
 .section-title::before{content:"";position:absolute;left:0;top:2px;width:3px;height:14px;
@@ -262,7 +266,10 @@ td select{cursor:pointer;text-align:left;}
     </div>
     <div class="field-group">
       <label for="reportDate">DATE</label>
-      <input id="reportDate" type="text" placeholder="DD-MM-YYYY" maxlength="10" autocomplete="off" spellcheck="false">
+      <div style="display:flex;gap:6px;">
+        <input id="reportDate" type="text" placeholder="DD-MM-YYYY" maxlength="10" autocomplete="off" spellcheck="false" style="flex:1;">
+        <button id="todayBtn" type="button" class="today-btn" title="Set to today">📅 Today</button>
+      </div>
     </div>
   </div>
 </div>
@@ -633,6 +640,55 @@ function fmtIntWithComma(n){
   return sign + absStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/* ---------- DATE HELPERS (Anti-conflict) ---------- */
+function normalizeDateStr(dateStr){
+  if(!dateStr) return null;
+  const s = String(dateStr).trim().slice(0, 10);
+  let m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+  if(m){
+    const dd = parseInt(m[1],10), mm = parseInt(m[2],10), yy = parseInt(m[3],10);
+    const year = yy < 100 ? 2000 + yy : yy;
+    if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    return year + "-" + String(mm).padStart(2,"0") + "-" + String(dd).padStart(2,"0");
+  }
+  m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+  if(m){
+    const mm = parseInt(m[2],10), dd = parseInt(m[3],10);
+    if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    return m[1] + "-" + String(mm).padStart(2,"0") + "-" + String(dd).padStart(2,"0");
+  }
+  return null;
+}
+function getTodayNormalized(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function checkDateHasRecords(normDate){
+  if(!normDate) return [];
+  return history.filter(h => h.date === normDate);
+}
+function updateDateWarningUI(){
+  const input = document.getElementById("reportDate");
+  if(!input) return;
+  const norm = normalizeDateStr(input.value);
+  if(!norm){
+    input.style.borderColor = "";
+    input.style.background = "";
+    input.title = "";
+    return;
+  }
+  const existing = checkDateHasRecords(norm);
+  if(existing.length > 0){
+    input.style.borderColor = "#FCD34D";
+    input.style.background = "rgba(254,243,199,.35)";
+    input.title = "⚠️ " + existing.length + " existing record(s) for this date — saving will overwrite them";
+  } else {
+    input.style.borderColor = "";
+    input.style.background = "";
+    input.title = "";
+  }
+}
+
 /* ---------- INTERPOLATION ---------- */
 function getInterpolatedLiter(mmList, literList, mmValue){
   for(let i = 0; i < mmList.length; i++){
@@ -852,6 +908,7 @@ function applyDbObject(data){
   }
   renderHistory();
   updateDbUi();
+  updateDateWarningUI();
   return true;
 }
 
@@ -1453,21 +1510,15 @@ function recalculateRow(tankName){
   const tlsLVal  = safeFloat(w.tlsL.value, 0);
   const manMmVal = safeFloat(w.manMm.value, 0);
 
-  /* F = TLS Chart (L) — interpolated from TLS MM */
   const F = getInterpolatedLiter(mmList, literList, tlsMmVal);
   w._F_value = F;
-  /* J = Manual Chart (L) — interpolated from Manual MM */
   const J = getInterpolatedLiter(mmList, literList, manMmVal);
   w._J_value = J;
 
-  /* G = TLS (Ltrs) − TLS Chart */
   const G = tlsLVal - F;
-  /* I = TLS MM − Manual MM */
   const I = tlsMmVal - manMmVal;
 
-  /* ✅ K_real = الفرق الحقيقي باللترات (للحسابات) */
   const K_real = tlsLVal - J;
-  /* ✅ K_display = ×1000 (للعرض والمطابقة مع الإكسل) */
   const K_display = K_real * LTRS_MULTIPLIER;
   w._K_value = K_display;
 
@@ -1487,9 +1538,7 @@ function recalculateRow(tankName){
   w.K.classList.remove("pos","neg");
   w.K.classList.add(K_display < 0 ? "neg" : "pos");
 
-  /* ✅ نمرر K_real (غير مضروب) لدالة التصحيح */
   const corr = calculateCorrection(I, K_real, tlsLVal);
-  /* تخزين Correction (Ltrs) مضروباً بـ1000 للاتساق مع Diff Ltrs */
   w._corrL_value = corr.corr_l * LTRS_MULTIPLIER;
   setText(w.corrMm, fmtNum(corr.corr_mm));
   setText(w.corrL, fmtIntWithComma(w._corrL_value));
@@ -1659,21 +1708,13 @@ function loadDayFromInput(){
   const input = document.getElementById("reportDate").value.trim().slice(0, 10);
   if(!input){ showToast("⚠️ Please enter a date.", "warn"); return; }
 
-  let normalizedDate = null, displayDate = null;
-  let m = input.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-  if(m){
-    normalizedDate = m[1] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[3]).padStart(2,"0");
-    displayDate = String(m[3]).padStart(2,"0") + "-" + String(m[2]).padStart(2,"0") + "-" + m[1];
-  } else {
-    m = input.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
-    if(m){
-      normalizedDate = m[3] + "-" + String(m[2]).padStart(2,"0") + "-" + String(m[1]).padStart(2,"0");
-      displayDate = String(m[1]).padStart(2,"0") + "-" + String(m[2]).padStart(2,"0") + "-" + m[3];
-    }
-  }
-  if(!normalizedDate){ showToast("❌ Invalid date.", "error"); return; }
+  const normDate = normalizeDateStr(input);
+  if(!normDate){ showToast("❌ Invalid date.", "error"); return; }
 
-  const records = history.filter(h => h.date === normalizedDate);
+  const parts = normDate.split("-");
+  const displayDate = parts[2] + "-" + parts[1] + "-" + parts[0];
+
+  const records = checkDateHasRecords(normDate);
   if(records.length === 0){ showToast("❌ No records for " + displayDate, "error"); return; }
 
   const byTank = {};
@@ -1701,8 +1742,9 @@ function loadDayFromInput(){
   });
 
   document.getElementById("reportDate").value = displayDate;
-  editModeDate = normalizedDate;
+  editModeDate = normDate;
   updateEditModeUI();
+  updateDateWarningUI();
   scheduleSave();
   setStatus("📅 Loaded " + displayDate, loaded + " tank(s)" + (missing.length ? " — " + missing.length + " missing" : ""), "var(--GREEN)");
   showToast("📅 Loaded " + displayDate, "success");
@@ -1741,31 +1783,54 @@ async function saveRecords(){
   const stationCode = sanitizeInput(document.getElementById("stationCode").value, 40);
   if(!dateStr){ showToast("⚠️ Enter a date.", "warn"); return; }
 
-  let recordDate;
-  const m = dateStr.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
-  if(m){
-    const dd = parseInt(m[1], 10), mm = parseInt(m[2], 10), yy = parseInt(m[3], 10);
-    const year = yy < 100 ? 2000 + yy : yy;
-    recordDate = year + "-" + String(mm).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
-  } else {
-    const m2 = dateStr.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
-    if(m2){
-      recordDate = m2[1] + "-" + String(m2[2]).padStart(2,"0") + "-" + String(m2[3]).padStart(2,"0");
-    } else {
-      showToast("❌ Invalid date format.", "error");
-      return;
-    }
+  const recordDate = normalizeDateStr(dateStr);
+  if(!recordDate){
+    showToast("❌ Invalid date format.", "error");
+    return;
   }
 
+  /* ✅ حماية قوية ضد تضارب التواريخ */
+  const existingRecords = checkDateHasRecords(recordDate);
+
   if(editModeDate){
-    history = history.filter(h => h.date !== editModeDate);
-  } else {
-    const existing = history.filter(h => h.date === recordDate);
-    if(existing.length > 0){
-      if(confirm("Records for " + dateStr + " exist (" + existing.length + ").\n\nOK = Update\nCancel = Add duplicates")){
-        history = history.filter(h => h.date !== recordDate);
+    if(editModeDate !== recordDate){
+      const oldCount = checkDateHasRecords(editModeDate).length;
+      let msg = "⚠️ DATE CHANGED DURING EDIT\n\n" +
+                "You opened day " + editModeDate + " for editing,\n" +
+                "but the date field now shows " + dateStr + ".\n\n" +
+                "This will:\n" +
+                "  • DELETE " + oldCount + " record(s) from " + editModeDate + "\n";
+      if(existingRecords.length > 0){
+        msg += "  • OVERWRITE " + existingRecords.length + " record(s) for " + dateStr + "\n";
+      } else {
+        msg += "  • CREATE new records for " + dateStr + "\n";
       }
+      msg += "\n✅ OK = Continue and apply changes\n❌ Cancel = ABORT (recommended if unintended)";
+      if(!confirm(msg)){
+        showToast("❌ Save aborted — nothing changed", "warn");
+        setStatus("❌ Aborted", "Edit cancelled");
+        return;
+      }
+      history = history.filter(h => h.date !== editModeDate);
+      if(existingRecords.length > 0) history = history.filter(h => h.date !== recordDate);
+    } else {
+      history = history.filter(h => h.date !== editModeDate);
     }
+  } else if(existingRecords.length > 0){
+    const tankList = existingRecords.slice(0, 8).map(r => "  • " + r.tank).join("\n");
+    const extra = existingRecords.length > 8 ? "\n  ... and " + (existingRecords.length - 8) + " more" : "";
+    const msg = "⚠️ DATE ALREADY HAS RECORDS\n\n" +
+                "Date: " + dateStr + "\n" +
+                "Existing: " + existingRecords.length + " record(s)\n\n" +
+                "Tanks with existing data:\n" + tankList + extra + "\n\n" +
+                "✅ OK = REPLACE old data with current values\n" +
+                "❌ Cancel = ABORT save (nothing changes)";
+    if(!confirm(msg)){
+      showToast("❌ Save cancelled — nothing changed", "warn");
+      setStatus("❌ Save cancelled", "Date already exists");
+      return;
+    }
+    history = history.filter(h => h.date !== recordDate);
   }
 
   const prevHistory = history.slice();
@@ -1814,6 +1879,7 @@ async function saveRecords(){
 
   renderHistory();
   updateDbUi();
+  updateDateWarningUI();
   setStatus("💾 Saved", saved + " record(s)");
   showToast("💾 Saved " + saved + " record(s)", "success");
 
@@ -2223,7 +2289,20 @@ async function init(){
     e.target.value = sanitizeInput(e.target.value, 40); scheduleSave();
   });
   document.getElementById("reportDate").addEventListener("input", (e) => {
-    e.target.value = sanitizeInput(e.target.value, 10); scheduleSave();
+    e.target.value = sanitizeInput(e.target.value, 10);
+    updateDateWarningUI();
+    scheduleSave();
+  });
+  document.getElementById("todayBtn").addEventListener("click", () => {
+    document.getElementById("reportDate").value = formatDateDDMMYYYY(new Date());
+    updateDateWarningUI();
+    scheduleSave();
+    const existing = checkDateHasRecords(getTodayNormalized());
+    if(existing.length > 0){
+      showToast("⚠️ Today already has " + existing.length + " record(s) — LOAD DAY to view", "warn");
+    } else {
+      showToast("📅 Date set to today", "success");
+    }
   });
   document.getElementById("companyNameInput").addEventListener("input", (e) => {
     e.target.value = sanitizeInput(e.target.value, 60);
@@ -2311,6 +2390,14 @@ async function init(){
 
   try { await tryAutoRestore(); } catch(e){ console.warn("Auto-restore error:", e); }
 
+  updateDateWarningUI();
+  const todayRecs = checkDateHasRecords(getTodayNormalized());
+  if(todayRecs.length > 0){
+    setTimeout(() => {
+      showToast("⚠️ Today already has " + todayRecs.length + " record(s) — press LOAD DAY to edit", "warn");
+    }, 800);
+  }
+
   updateDbUi();
   updateEditModeUI();
   updateBrandingUI();
@@ -2333,7 +2420,7 @@ async function init(){
     w.textContent = "❌ Excel library failed to load! Check your internet and refresh.";
     setStatus("❌ Excel library not loaded", "Connect to internet and press F5", "var(--RED)");
   } else if(needsReconnect){
-    // status already set
+    /* status already set */
   } else if(dbDirHandle || dbFileHandle){
     setStatus("✅ Ready — auto-save active", "Backup: " + folderName);
   } else if(dataLoaded){
