@@ -8,6 +8,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none';">
 <title>Manual Dipping Report — H.alathm</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
   if (typeof XLSX === "undefined") {
     document.write('<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
@@ -222,7 +224,8 @@ td select{cursor:pointer;text-align:left;}
         <button class="menu-btn" type="button">📤 EXPORT</button>
         <div class="menu-items">
           <a id="exportExcelBtn">📊 Export to Excel</a>
-          <a id="exportPdfBtn">📄 Export to PDF</a>
+          <a id="exportPdfBtn">📄 Download PDF</a>
+          <a id="printBtn">🖨️ Print</a>
         </div>
       </div>
       <div class="menu" data-menu="backup">
@@ -289,7 +292,7 @@ td select{cursor:pointer;text-align:left;}
         <tr>
           <th>Tank</th><th>Product</th><th>TLS (MM)</th><th>TLS (Ltrs)</th>
           <th>TLS Chart (L)</th><th>Diff TLS-Chart (L)</th><th>Manual (MM)</th>
-          <th>Diff MM (D-H)</th><th>Manual Chart (L)</th><th>Diff Ltrs (D-J)</th>
+          <th>Diff MM (TLS-Manual)</th><th>Manual Chart (L)</th><th>Diff Ltrs (×1000)</th>
           <th class="corr-col">Correction (MM)</th><th class="corr-col">Correction (Ltrs)</th>
           <th class="corr-col">Correction (%)</th><th class="corr-col">Suggestion</th>
         </tr>
@@ -348,37 +351,33 @@ td select{cursor:pointer;text-align:left;}
 </div>
 
 <script>
-/* =========================================================
-   Manual Dipping Report — Author: H.alathm
-   Security-hardened version
-   ========================================================= */
 "use strict";
 
 /* =========================================================
-   SECURITY CONSTANTS
+   Manual Dipping Report — Author: H.alathm
    ========================================================= */
+
+/* ---------- CONSTANTS ---------- */
 const AUTHOR = "H.alathm";
 const PRODUCTS = ["Unleaded 90", "Unleaded 95", "Diesel", "Kerosene"];
 const RED_THRESHOLD = -10;
 const DB_VERSION = 5;
 const DECIMALS = 3;
 const BACKUP_FILENAME = "ManualDipping_DB.json";
+const LTRS_MULTIPLIER = 1000;
 
-/* Security limits */
-const MAX_LOGO_SIZE       = 5   * 1024 * 1024;      // 5 MB
-const MAX_EXCEL_SIZE      = 20  * 1024 * 1024;      // 20 MB
-const MAX_JSON_SIZE       = 50  * 1024 * 1024;      // 50 MB
+const MAX_LOGO_SIZE       = 5   * 1024 * 1024;
+const MAX_EXCEL_SIZE      = 20  * 1024 * 1024;
+const MAX_JSON_SIZE       = 50  * 1024 * 1024;
 const MAX_TANKS           = 200;
 const MAX_HISTORY_RECORDS = 50000;
 const MAX_STRING_LENGTH   = 500;
-const MAX_LOGO_DATAURL    = 3   * 1024 * 1024;      // 3 MB (base64 expanded)
+const MAX_LOGO_DATAURL    = 3   * 1024 * 1024;
 const MAX_CHART_POINTS    = 5000;
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const FORBIDDEN_KEYS      = ["__proto__", "constructor", "prototype"];
 
-/* =========================================================
-   STATE
-   ========================================================= */
+/* ---------- STATE ---------- */
 let charts = {};
 let rowWidgets = {};
 let tankOrder = [];
@@ -396,13 +395,10 @@ let needsReconnect = false;
 let editModeDate = null;
 let _autoReconnectListenerActive = false;
 let _lastSaveTime = 0;
-
 let companyName = "";
 let logoDataUrl = "";
 
-/* =========================================================
-   SECURITY HELPERS
-   ========================================================= */
+/* ---------- SECURITY HELPERS ---------- */
 function escapeHtml(s){
   return String(s == null ? "" : s)
     .replace(/&/g, "&amp;")
@@ -411,41 +407,29 @@ function escapeHtml(s){
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-/* XSS-safe DOM text setter */
 function setText(el, txt){
   if(el) el.textContent = String(txt == null ? "" : txt);
 }
-
-/* Safe DOM element builder */
 function safeEl(tag, className, text){
   const el = document.createElement(tag);
   if(className) el.className = className;
   if(text !== undefined && text !== null) el.textContent = String(text);
   return el;
 }
-
-/* Length + content sanitization for user text inputs */
 function sanitizeInput(str, maxLen){
   if(str === null || str === undefined) return "";
   let s = String(str);
-  // Strip control chars except tab/newline
   s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   if(maxLen && s.length > maxLen) s = s.slice(0, maxLen);
   return s;
 }
-
-/* Excel formula-injection prevention */
 function safeExcelCell(v){
   if(typeof v === "number" && isFinite(v)) return v;
   if(typeof v === "boolean") return v;
   let s = String(v == null ? "" : v);
-  // Prefix dangerous leading chars with a single quote to neutralize formulas
   if(/^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return s;
 }
-
-/* Safe JSON parse with prototype pollution protection + size limit */
 function safeJsonParse(text){
   if(typeof text !== "string") throw new Error("Invalid input");
   if(text.length > MAX_JSON_SIZE) throw new Error("JSON payload too large");
@@ -454,8 +438,6 @@ function safeJsonParse(text){
     return value;
   });
 }
-
-/* Validate DB structure before applying */
 function validateDbData(data){
   if(!data || typeof data !== "object" || Array.isArray(data)){
     return { ok: false, msg: "Data is not an object" };
@@ -495,13 +477,11 @@ function validateDbData(data){
     if(typeof data.logoDataUrl !== "string") return { ok: false, msg: "Invalid logo data" };
     if(data.logoDataUrl.length > MAX_LOGO_DATAURL) return { ok: false, msg: "Logo too large" };
     if(!/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(data.logoDataUrl)){
-      return { ok: false, msg: "Invalid logo format (only PNG/JPG/WEBP/GIF allowed)" };
+      return { ok: false, msg: "Invalid logo format" };
     }
   }
   return { ok: true };
 }
-
-/* Validate image file by magic bytes */
 async function validateImageFile(file){
   if(!file) return { ok: false, msg: "No file selected" };
   if(ALLOWED_IMAGE_TYPES.indexOf(file.type) === -1){
@@ -531,8 +511,6 @@ async function validateImageFile(file){
   }
   return { ok: true };
 }
-
-/* Rate limit saves to prevent rapid duplicate writes */
 function rateLimitedSave(){
   const now = Date.now();
   if(now - _lastSaveTime < 300) return false;
@@ -540,21 +518,15 @@ function rateLimitedSave(){
   return true;
 }
 
-/* =========================================================
-   SAFE STORAGE
-   ========================================================= */
+/* ---------- SAFE STORAGE ---------- */
 const _memStore = {};
-let _localStorageOK = true;
 try { localStorage.setItem("__t__","1"); localStorage.removeItem("__t__"); }
-catch(e){ _localStorageOK = false; document.getElementById("storageWarn").style.display = "block"; }
+catch(e){ document.getElementById("storageWarn").style.display = "block"; }
 function _storageGet(k){ try{return localStorage.getItem(k);}catch(e){return _memStore[k]!==undefined?_memStore[k]:null;} }
 function _storageSet(k,v){ try{localStorage.setItem(k,v);}catch(e){} _memStore[k]=v; }
-function _storageRemove(k){ try{localStorage.removeItem(k);}catch(e){} delete _memStore[k]; }
 const LS_STATE_KEY = "manual_dipping_state_v1";
 
-/* =========================================================
-   INDEXEDDB
-   ========================================================= */
+/* ---------- INDEXEDDB ---------- */
 const IDB_NAME = "ManualDippingDB_v5";
 const IDB_STORE = "handles";
 const IDB_DIR_KEY = "backupDirHandle";
@@ -608,9 +580,7 @@ async function idbDelete(key){
 async function saveFullDataToIDB(data){ return await idbSet(IDB_DATA_KEY, data); }
 async function loadFullDataFromIDB(){ return await idbGet(IDB_DATA_KEY); }
 
-/* =========================================================
-   NUMERIC HELPERS
-   ========================================================= */
+/* ---------- NUMERIC HELPERS ---------- */
 function safeFloat(val, def){
   if(def === undefined) def = 0;
   if(val === null || val === undefined) return def;
@@ -642,10 +612,6 @@ function safeFloat(val, def){
 }
 function fmtInput(val){
   if(val === null || val === undefined || val === "") return "";
-  if(typeof val === "number"){
-    if(Number.isInteger(val)) return String(val);
-    return String(val);
-  }
   return String(val);
 }
 function formatDateDDMMYYYY(d){
@@ -659,10 +625,15 @@ function fmtNum(n){
   if(typeof n !== "number" || !isFinite(n)) return "0." + "0".repeat(DECIMALS);
   return n.toFixed(DECIMALS);
 }
+function fmtIntWithComma(n){
+  if(typeof n !== "number" || !isFinite(n)) return "0";
+  const rounded = Math.round(n);
+  const sign = rounded < 0 ? "-" : "";
+  const absStr = String(Math.abs(rounded));
+  return sign + absStr.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
-/* =========================================================
-   INTERPOLATION (matches VBA)
-   ========================================================= */
+/* ---------- INTERPOLATION ---------- */
 function getInterpolatedLiter(mmList, literList, mmValue){
   for(let i = 0; i < mmList.length; i++){
     if(Math.abs(mmList[i] - mmValue) < 0.0001) return literList[i];
@@ -686,9 +657,7 @@ function getClosestLiter(mmList, literList, mmValue){
   return literList[closestIdx];
 }
 
-/* =========================================================
-   TOAST / STATUS / LOADING
-   ========================================================= */
+/* ---------- TOAST / STATUS / LOADING ---------- */
 let _toastTm = null;
 function showToast(msg, type){
   const t = document.getElementById("toast");
@@ -710,9 +679,7 @@ function hideLoading(){
   document.getElementById("loadingOverlay").classList.remove("show");
 }
 
-/* =========================================================
-   DROPDOWN MENUS
-   ========================================================= */
+/* ---------- DROPDOWN MENUS ---------- */
 function closeAllMenus(){
   document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
 }
@@ -731,9 +698,7 @@ document.querySelectorAll(".menu-items a").forEach(a => {
   a.addEventListener("click", () => setTimeout(closeAllMenus, 100));
 });
 
-/* =========================================================
-   BRANDING
-   ========================================================= */
+/* ---------- BRANDING ---------- */
 function updateBrandingUI(){
   const img = document.getElementById("companyLogoImg");
   const hint = document.getElementById("logoHint");
@@ -752,20 +717,15 @@ function updateBrandingUI(){
 async function uploadLogo(file){
   if(!file) return;
   const check = await validateImageFile(file);
-  if(!check.ok){
-    showToast("❌ " + check.msg, "error");
-    return;
-  }
+  if(!check.ok){ showToast("❌ " + check.msg, "error"); return; }
   const reader = new FileReader();
   reader.onload = function(e){
     const dataUrl = e.target.result;
     if(typeof dataUrl !== "string" || dataUrl.length > MAX_LOGO_DATAURL){
-      showToast("❌ Logo data too large", "error");
-      return;
+      showToast("❌ Logo data too large", "error"); return;
     }
     if(!/^data:image\/(png|jpeg|webp|gif);base64,/.test(dataUrl)){
-      showToast("❌ Invalid logo format", "error");
-      return;
+      showToast("❌ Invalid logo format", "error"); return;
     }
     logoDataUrl = dataUrl;
     updateBrandingUI();
@@ -785,9 +745,7 @@ function removeLogo(){
   showToast("🗑️ Logo removed", "success");
 }
 
-/* =========================================================
-   DB UI
-   ========================================================= */
+/* ---------- DB UI ---------- */
 function updateDbUi(){
   const chip = document.getElementById("folderStatusChip");
   const nameEl = document.getElementById("folderName");
@@ -829,9 +787,7 @@ function markDbSaved(){
   if(lastEl) lastEl.textContent = "Last saved: " + ts;
 }
 
-/* =========================================================
-   DB SERIALIZE
-   ========================================================= */
+/* ---------- DB SERIALIZE ---------- */
 function buildDbObject(){
   return {
     version: DB_VERSION,
@@ -862,10 +818,7 @@ function buildDbObject(){
 
 function applyDbObject(data){
   const check = validateDbData(data);
-  if(!check.ok){
-    console.warn("Rejected data:", check.msg);
-    return false;
-  }
+  if(!check.ok){ console.warn("Rejected data:", check.msg); return false; }
   companyName = sanitizeInput(data.companyName || "", 60);
   logoDataUrl = (typeof data.logoDataUrl === "string" && data.logoDataUrl.length <= MAX_LOGO_DATAURL) ? data.logoDataUrl : "";
   updateBrandingUI();
@@ -902,9 +855,7 @@ function applyDbObject(data){
   return true;
 }
 
-/* =========================================================
-   BACKUP FUNCTIONS
-   ========================================================= */
+/* ---------- BACKUP FUNCTIONS ---------- */
 async function linkBackupFolder(){
   if(dirPickerSupported){
     try{
@@ -1279,9 +1230,7 @@ function downloadBackupNow(){
 
 function loadJsonFile(){ document.getElementById("loadJsonInput").click(); }
 
-/* =========================================================
-   AUTO-SAVE
-   ========================================================= */
+/* ---------- AUTO-SAVE ---------- */
 function scheduleSave(){
   if(_suppressAutoSave) return;
   clearTimeout(_saveTimer);
@@ -1294,9 +1243,7 @@ function scheduleSave(){
   }, 400);
 }
 
-/* =========================================================
-   EXCEL-LIKE PASTE + ENTER
-   ========================================================= */
+/* ---------- EXCEL-LIKE PASTE + ENTER ---------- */
 function getCellAt(rowIdx, colIdx){
   const tankName = tankOrder[rowIdx];
   if(!tankName) return null;
@@ -1339,7 +1286,7 @@ function attachExcelLike(grid, onAfterChange){
         if(!clip) return;
         const text = clip.getData("text");
         if(!text) return;
-        if(text.length > 100000) return; /* paste size limit */
+        if(text.length > 100000) return;
         if(!/[\t\n\r]/.test(text)) return;
         e.preventDefault();
         const lines = text.replace(/\r\n/g,"\n").replace(/\r/g,"\n").split("\n").slice(0, 500);
@@ -1377,9 +1324,7 @@ function attachExcelLike(grid, onAfterChange){
   });
 }
 
-/* =========================================================
-   BUILD TABLE
-   ========================================================= */
+/* ---------- BUILD TABLE ---------- */
 function buildTable(rowsData){
   const tbody = document.getElementById("dippingBody");
   const emptyState = document.getElementById("emptyState");
@@ -1431,8 +1376,7 @@ function buildTable(rowsData){
     const tdTlsMm = document.createElement("td");
     const tlsMmInput = document.createElement("input");
     tlsMmInput.type = "text"; tlsMmInput.inputMode = "decimal";
-    tlsMmInput.maxLength = 20;
-    tlsMmInput.autocomplete = "off";
+    tlsMmInput.maxLength = 20; tlsMmInput.autocomplete = "off";
     tlsMmInput.value = fmtInput(row.tls_mm);
     tdTlsMm.appendChild(tlsMmInput);
     tr.appendChild(tdTlsMm);
@@ -1440,8 +1384,7 @@ function buildTable(rowsData){
     const tdTlsL = document.createElement("td");
     const tlsLInput = document.createElement("input");
     tlsLInput.type = "text"; tlsLInput.inputMode = "decimal";
-    tlsLInput.maxLength = 20;
-    tlsLInput.autocomplete = "off";
+    tlsLInput.maxLength = 20; tlsLInput.autocomplete = "off";
     tlsLInput.value = fmtInput(row.tls_l);
     tdTlsL.appendChild(tlsLInput);
     tr.appendChild(tdTlsL);
@@ -1453,8 +1396,7 @@ function buildTable(rowsData){
     const tdManMm = document.createElement("td");
     const manMmInput = document.createElement("input");
     manMmInput.type = "text"; manMmInput.inputMode = "decimal";
-    manMmInput.maxLength = 20;
-    manMmInput.autocomplete = "off";
+    manMmInput.maxLength = 20; manMmInput.autocomplete = "off";
     manMmInput.value = fmtInput(row.man_mm);
     tdManMm.appendChild(manMmInput);
     tr.appendChild(tdManMm);
@@ -1475,7 +1417,7 @@ function buildTable(rowsData){
       prod: prodSelect, tlsMm: tlsMmInput, tlsL: tlsLInput, manMm: manMmInput,
       F: tdF, G: tdG, I: tdI, J: tdJ, K: tdK,
       corrMm: tdCorrMm, corrL: tdCorrL, corrPct: tdCorrPct, sugg: tdSugg,
-      _F_value: null, _J_value: null
+      _F_value: null, _J_value: null, _K_value: null, _corrL_value: null
     };
 
     pasteGrid.push([prodSelect, tlsMmInput, tlsLInput, manMmInput]);
@@ -1500,9 +1442,7 @@ function updateTankCount(){
   if(chip) chip.textContent = tankOrder.length + " tank" + (tankOrder.length === 1 ? "" : "s");
 }
 
-/* =========================================================
-   RECALCULATE
-   ========================================================= */
+/* ---------- RECALCULATE ---------- */
 function recalculateRow(tankName){
   const w = rowWidgets[tankName];
   if(!w) return;
@@ -1513,15 +1453,23 @@ function recalculateRow(tankName){
   const tlsLVal  = safeFloat(w.tlsL.value, 0);
   const manMmVal = safeFloat(w.manMm.value, 0);
 
+  /* F = TLS Chart (L) — interpolated from TLS MM */
   const F = getInterpolatedLiter(mmList, literList, tlsMmVal);
   w._F_value = F;
+  /* J = Manual Chart (L) — interpolated from Manual MM */
   const J = getInterpolatedLiter(mmList, literList, manMmVal);
   w._J_value = J;
 
+  /* G = TLS (Ltrs) − TLS Chart */
   const G = tlsLVal - F;
+  /* I = TLS MM − Manual MM */
   const I = tlsMmVal - manMmVal;
-  /* ✅ FIX: Diff Ltrs = TLS (Ltrs) entered − Manual Chart (J) */
-  const K = tlsLVal - J;
+
+  /* ✅ K_real = الفرق الحقيقي باللترات (للحسابات) */
+  const K_real = tlsLVal - J;
+  /* ✅ K_display = ×1000 (للعرض والمطابقة مع الإكسل) */
+  const K_display = K_real * LTRS_MULTIPLIER;
+  w._K_value = K_display;
 
   setText(w.F, fmtNum(F));
   setText(w.G, fmtNum(G));
@@ -1535,13 +1483,16 @@ function recalculateRow(tankName){
   else { w.I.classList.add("pos"); }
 
   setText(w.J, fmtNum(J));
-  setText(w.K, fmtNum(K));
+  setText(w.K, fmtIntWithComma(K_display));
   w.K.classList.remove("pos","neg");
-  w.K.classList.add(K < 0 ? "neg" : "pos");
+  w.K.classList.add(K_display < 0 ? "neg" : "pos");
 
-  const corr = calculateCorrection(I, K, tlsLVal);
+  /* ✅ نمرر K_real (غير مضروب) لدالة التصحيح */
+  const corr = calculateCorrection(I, K_real, tlsLVal);
+  /* تخزين Correction (Ltrs) مضروباً بـ1000 للاتساق مع Diff Ltrs */
+  w._corrL_value = corr.corr_l * LTRS_MULTIPLIER;
   setText(w.corrMm, fmtNum(corr.corr_mm));
-  setText(w.corrL, fmtNum(corr.corr_l));
+  setText(w.corrL, fmtIntWithComma(w._corrL_value));
   setText(w.corrPct, fmtNum(corr.corr_pct) + "%");
   setText(w.sugg, corr.suggestion);
 }
@@ -1590,9 +1541,7 @@ function clearRows(){
   showToast("🧹 Cleared values", "success");
 }
 
-/* =========================================================
-   IMPORT EXCEL (with size limits)
-   ========================================================= */
+/* ---------- IMPORT EXCEL ---------- */
 function importTankCharts(file){
   if(!file) return;
   if(typeof XLSX === "undefined"){
@@ -1704,9 +1653,7 @@ function importTankCharts(file){
   reader.readAsArrayBuffer(file);
 }
 
-/* =========================================================
-   LOAD DAY
-   ========================================================= */
+/* ---------- LOAD DAY ---------- */
 function loadDayFromInput(){
   if(tankOrder.length === 0){ showToast("⚠️ No tanks loaded.", "warn"); return; }
   const input = document.getElementById("reportDate").value.trim().slice(0, 10);
@@ -1785,9 +1732,7 @@ function exitEditMode(){
   showToast("Exited edit mode", "success");
 }
 
-/* =========================================================
-   SAVE RECORDS
-   ========================================================= */
+/* ---------- SAVE RECORDS ---------- */
 async function saveRecords(){
   if(tankOrder.length === 0){ showToast("⚠️ No tanks loaded.", "warn"); return; }
 
@@ -1844,7 +1789,7 @@ async function saveRecords(){
       man_mm: safeFloat(w.manMm.value, 0),
       diff_mm: parseFloat(w.I.textContent) || 0,
       man_chart_liters: parseFloat(w.J.textContent) || 0,
-      diff_final: parseFloat(w.K.textContent) || 0
+      diff_final: (typeof w._K_value === "number" && isFinite(w._K_value)) ? w._K_value : 0
     });
     saved++;
   });
@@ -1875,9 +1820,7 @@ async function saveRecords(){
   if(editModeDate){ editModeDate = null; updateEditModeUI(); }
 }
 
-/* =========================================================
-   RENDER HISTORY (XSS-SAFE — no innerHTML)
-   ========================================================= */
+/* ---------- RENDER HISTORY ---------- */
 function renderHistory(){
   const tbody = document.getElementById("historyBody");
   const histEmpty = document.getElementById("histEmpty");
@@ -1899,7 +1842,7 @@ function renderHistory(){
       { v: fmtNum(h.man_mm || 0),           cls: "" },
       { v: fmtNum(h.diff_mm || 0),          cls: (h.diff_mm < 0)    ? "neg" : "pos" },
       { v: fmtNum(h.man_chart_liters || 0), cls: "" },
-      { v: fmtNum(h.diff_final || 0),       cls: (h.diff_final < 0) ? "neg" : "pos" }
+      { v: fmtIntWithComma(h.diff_final || 0), cls: (h.diff_final < 0) ? "neg" : "pos" }
     ];
     row.forEach(f => {
       const td = document.createElement("td");
@@ -1911,9 +1854,7 @@ function renderHistory(){
   });
 }
 
-/* =========================================================
-   EXPORT EXCEL (with formula injection prevention)
-   ========================================================= */
+/* ---------- EXPORT EXCEL ---------- */
 function exportExcel(){
   if(typeof XLSX === "undefined"){
     alert("❌ Excel library not loaded!\n\nCheck internet and refresh (F5).");
@@ -1942,13 +1883,15 @@ function exportExcel(){
     aoa.push([]);
     aoa.push([
       "Tank", "Product", "TLS (MM)", "TLS (L)", "TLS Chart (L)", "Diff TLS-Chart",
-      "Manual (MM)", "Diff MM (D-H)", "Manual Chart (L)", "Diff Ltrs (D-J)",
+      "Manual (MM)", "Diff MM (TLS-Manual)", "Manual Chart (L)", "Diff Ltrs (×1000)",
       "Correction (MM)", "Correction (Ltrs)", "Correction (%)", "Suggestion"
     ]);
 
     tankOrder.forEach(tankName => {
       const w = rowWidgets[tankName];
       if(!w) return;
+      const K = (typeof w._K_value === "number" && isFinite(w._K_value)) ? w._K_value : 0;
+      const corrL = (typeof w._corrL_value === "number" && isFinite(w._corrL_value)) ? w._corrL_value : 0;
       aoa.push([
         safeExcelCell(tankName), safeExcelCell(w.prod.value),
         safeFloat(w.tlsMm.value, 0), safeFloat(w.tlsL.value, 0),
@@ -1957,10 +1900,9 @@ function exportExcel(){
         safeFloat(w.manMm.value, 0),
         (safeFloat(w.tlsMm.value, 0) - safeFloat(w.manMm.value, 0)),
         w._J_value != null ? w._J_value : 0,
-        /* ✅ FIX: Diff Ltrs = TLS (Ltrs) entered − Manual Chart */
-        (safeFloat(w.tlsL.value, 0) - (w._J_value || 0)),
+        Math.round(K),
         parseFloat(w.corrMm.textContent) || 0,
-        parseFloat(w.corrL.textContent) || 0,
+        Math.round(corrL),
         parseFloat(w.corrPct.textContent) || 0,
         safeExcelCell(w.sugg.textContent)
       ]);
@@ -1969,14 +1911,14 @@ function exportExcel(){
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!cols"] = [
       {wch:10},{wch:14},{wch:12},{wch:12},{wch:14},{wch:16},
-      {wch:12},{wch:14},{wch:14},{wch:16},{wch:16},{wch:17},{wch:15},{wch:50}
+      {wch:12},{wch:18},{wch:14},{wch:18},{wch:16},{wch:18},{wch:15},{wch:50}
     ];
     XLSX.utils.book_append_sheet(wb, ws, "Manual Dipping");
 
     if(history.length > 0){
       const histAoa = [
         ["ID","Date","Station","Station Code","Tank","Product","TLS (MM)","TLS (L)","Chart (L)","Diff TLS-Chart",
-         "Manual (MM)","Diff MM","Manual Chart (L)","Diff Ltrs"]
+         "Manual (MM)","Diff MM","Manual Chart (L)","Diff Ltrs (×1000)"]
       ];
       history.slice(0, MAX_HISTORY_RECORDS).forEach(h => {
         histAoa.push([
@@ -2002,126 +1944,228 @@ function exportExcel(){
   }
 }
 
-/* =========================================================
-   EXPORT PDF (XSS-safe with escaping)
-   ========================================================= */
-function exportPDF(){
-  if(tankOrder.length === 0){
-    alert("⚠️ No tanks to export!");
-    showToast("⚠️ No tanks", "warn");
-    return;
-  }
+/* ---------- REPORT CSS (SCOPED) ---------- */
+const REPORT_CSS = [
+  ".pdf-root{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1F2937;margin:0;padding:0;background:#fff;}",
+  ".pdf-root h1{font-size:14pt;text-align:center;color:#0F4C81;margin:0 0 4px 0;letter-spacing:1px;}",
+  ".pdf-root .subtitle{text-align:center;color:#475569;font-size:10pt;margin:0 0 12px 0;}",
+  ".pdf-root table{width:100%;border-collapse:collapse;table-layout:fixed;}",
+  ".pdf-root th{background:#2c3e50;color:#fff;padding:5px 3px;font-size:8pt;border:1px solid #94A3B8;text-align:center;word-wrap:break-word;}",
+  ".pdf-root td{border:1px solid #CBD5E1;padding:4px 3px;font-size:8pt;text-align:center;word-wrap:break-word;}",
+  ".pdf-root td.red{background:#DC2626 !important;color:#fff;font-weight:bold;}",
+  ".pdf-root td.neg{color:#DC2626;}",
+  ".pdf-root td.pos{color:#047857;}",
+  ".pdf-root td.sugg{text-align:left;font-style:italic;font-size:7pt;color:#92400E;}",
+  ".pdf-root tr:nth-child(even) td{background:#F8FAFC;}",
+  ".pdf-root .footer{margin-top:12px;text-align:center;color:#64748B;font-size:8pt;}",
+  ".pdf-root .signature{margin-top:6px;text-align:center;color:#0F4C81;font-size:10pt;font-weight:800;letter-spacing:2px;font-family:Consolas,monospace;}",
+  ".pdf-root .branding{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;padding:10px;border-bottom:2px solid #0F4C81;}",
+  ".pdf-root .branding img{max-height:60px;max-width:140px;object-fit:contain;}",
+  ".pdf-root .branding .cn{font-size:16pt;font-weight:800;color:#0F4C81;letter-spacing:1px;}"
+].join("\n");
 
+/* ---------- BUILD REPORT BODY HTML ---------- */
+function buildReportBodyHtml(){
   const station = sanitizeInput(document.getElementById("stationName").value, 80);
   const stationCode = sanitizeInput(document.getElementById("stationCode").value, 40);
   let title = station ? station : "Manual Dipping";
   if(stationCode) title += " [" + stationCode + "]";
   title += " - Manual Dipping Log";
 
-  const rowsData = tankOrder.map(tankName => {
-    const w = rowWidgets[tankName];
-    return [
-      tankName, w.prod.value,
-      fmtNum(safeFloat(w.tlsMm.value, 0)),
-      fmtNum(safeFloat(w.tlsL.value, 0)),
-      w.F.textContent, w.G.textContent,
-      fmtNum(safeFloat(w.manMm.value, 0)),
-      w.I.textContent, w.J.textContent, w.K.textContent,
-      w.corrMm.textContent, w.corrL.textContent, w.corrPct.textContent, w.sugg.textContent
-    ];
-  });
+  let branding = "";
+  if(logoDataUrl || companyName){
+    branding = "<div class='branding'>";
+    if(logoDataUrl && /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(logoDataUrl)){
+      branding += "<img src='" + logoDataUrl + "' alt='Logo'>";
+    }
+    if(companyName){
+      branding += "<div class='cn'>" + escapeHtml(companyName) + "</div>";
+    }
+    branding += "</div>";
+  }
 
   const headers = [
     "Tank","Product","TLS (MM)","TLS (L)","TLS Chart (L)","Diff TLS-Chart",
-    "Manual (MM)","Diff MM (D-H)","Manual Chart (L)","Diff Ltrs (D-J)",
+    "Manual (MM)","Diff MM (TLS-Manual)","Manual Chart (L)","Diff Ltrs (×1000)",
     "Corr (MM)","Corr (Ltrs)","Corr (%)","Suggestion"
   ];
 
-  let headerBranding = "";
-  if(logoDataUrl || companyName){
-    headerBranding = "<div style='display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;padding:10px;border-bottom:2px solid #0F4C81;'>";
-    if(logoDataUrl){
-      /* Sanity check on data URL before embedding */
-      if(/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(logoDataUrl)){
-        headerBranding += "<img src='" + logoDataUrl + "' style='max-height:60px;max-width:140px;object-fit:contain;' alt='Logo'>";
-      }
-    }
-    if(companyName){
-      headerBranding += "<div style='font-size:16pt;font-weight:800;color:#0F4C81;letter-spacing:1px;'>" + escapeHtml(companyName) + "</div>";
-    }
-    headerBranding += "</div>";
-  }
-
-  let html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + escapeHtml(title) + "</title>" +
-"<style>@page{size:A4 landscape;margin:12mm;}" +
-"body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#1F2937;margin:0;padding:0;}" +
-"h1{font-size:14pt;text-align:center;color:#0F4C81;margin:0 0 4px 0;letter-spacing:1px;}" +
-".subtitle{text-align:center;color:#475569;font-size:10pt;margin:0 0 12px 0;}" +
-"table{width:100%;border-collapse:collapse;table-layout:fixed;}" +
-"th{background:#2c3e50;color:#fff;padding:5px 3px;font-size:8pt;border:1px solid #94A3B8;text-align:center;word-wrap:break-word;}" +
-"td{border:1px solid #CBD5E1;padding:4px 3px;font-size:8pt;text-align:center;word-wrap:break-word;}" +
-"td.red{background:#DC2626 !important;color:#fff;font-weight:bold;}" +
-"td.neg{color:#DC2626;}td.pos{color:#047857;}" +
-"td.sugg{text-align:left;font-style:italic;font-size:7pt;color:#92400E;}" +
-"tr:nth-child(even) td{background:#F8FAFC;}" +
-".footer{margin-top:12px;text-align:center;color:#64748B;font-size:8pt;}" +
-".signature{margin-top:6px;text-align:center;color:#0F4C81;font-size:10pt;font-weight:800;letter-spacing:2px;font-family:Consolas,monospace;}" +
-"</style></head><body>" +
-headerBranding +
-"<h1>" + escapeHtml(title) + "</h1>" +
-"<p class='subtitle'>Date: " + escapeHtml(document.getElementById("reportDate").value) + "</p>" +
-"<table><colgroup>" +
-"<col style='width:6%'><col style='width:8%'><col style='width:6%'><col style='width:7%'>" +
-"<col style='width:7%'><col style='width:8%'><col style='width:7%'><col style='width:7%'>" +
-"<col style='width:7%'><col style='width:8%'><col style='width:7%'><col style='width:7%'>" +
-"<col style='width:6%'><col style='width:12%'></colgroup><thead><tr>";
+  let html = branding +
+    "<h1>" + escapeHtml(title) + "</h1>" +
+    "<p class='subtitle'>Date: " + escapeHtml(document.getElementById("reportDate").value) + "</p>" +
+    "<table><colgroup>" +
+    "<col style='width:5%'><col style='width:8%'><col style='width:6%'><col style='width:7%'>" +
+    "<col style='width:7%'><col style='width:7%'><col style='width:6%'><col style='width:8%'>" +
+    "<col style='width:7%'><col style='width:9%'><col style='width:6%'><col style='width:8%'>" +
+    "<col style='width:5%'><col style='width:11%'></colgroup><thead><tr>";
 
   headers.forEach(h => { html += "<th>" + escapeHtml(h) + "</th>"; });
   html += "</tr></thead><tbody>";
 
-  rowsData.forEach(row => {
+  tankOrder.forEach(tankName => {
+    const w = rowWidgets[tankName];
+    if(!w) return;
+    const K = (typeof w._K_value === "number" && isFinite(w._K_value)) ? w._K_value : 0;
+    const corrL = (typeof w._corrL_value === "number" && isFinite(w._corrL_value)) ? w._corrL_value : 0;
+
+    let diffMmCls = "pos";
+    const diffMmNum = parseFloat(w.I.textContent);
+    if(!isNaN(diffMmNum)){
+      if(diffMmNum <= RED_THRESHOLD) diffMmCls = "red";
+      else if(diffMmNum < 0) diffMmCls = "neg";
+    }
+
+    const cells = [
+      { v: tankName, cls: "" },
+      { v: w.prod.value, cls: "" },
+      { v: fmtNum(safeFloat(w.tlsMm.value, 0)), cls: "" },
+      { v: fmtNum(safeFloat(w.tlsL.value, 0)), cls: "" },
+      { v: w.F.textContent, cls: "" },
+      { v: w.G.textContent, cls: "" },
+      { v: fmtNum(safeFloat(w.manMm.value, 0)), cls: "" },
+      { v: w.I.textContent, cls: diffMmCls },
+      { v: w.J.textContent, cls: "" },
+      { v: fmtIntWithComma(K), cls: (K < 0) ? "neg" : "pos" },
+      { v: w.corrMm.textContent, cls: "" },
+      { v: fmtIntWithComma(corrL), cls: "" },
+      { v: w.corrPct.textContent, cls: "" },
+      { v: w.sugg.textContent, cls: "sugg" }
+    ];
     html += "<tr>";
-    row.forEach((cell, idx) => {
-      let cls = "";
-      if(idx === 7){
-        const n = parseFloat(cell);
-        if(!isNaN(n) && n <= RED_THRESHOLD) cls = "red";
-        else if(!isNaN(n) && n < 0) cls = "neg";
-        else if(!isNaN(n)) cls = "pos";
-      } else if(idx === 9){
-        const n = parseFloat(cell);
-        if(!isNaN(n)) cls = n < 0 ? "neg" : "pos";
-      } else if(idx === 13){ cls = "sugg"; }
-      html += "<td class='" + cls + "'>" + escapeHtml(String(cell)) + "</td>";
+    cells.forEach(c => {
+      html += "<td class='" + c.cls + "'>" + escapeHtml(String(c.v)) + "</td>";
     });
     html += "</tr>";
   });
+
   html += "</tbody></table>" +
-          "<p class='footer'>Generated " + escapeHtml(new Date().toLocaleString()) + "</p>" +
-          "<p class='signature'>" + escapeHtml(AUTHOR) + "</p>" +
-          "</body></html>";
+    "<p class='footer'>Generated " + escapeHtml(new Date().toLocaleString()) + "</p>" +
+    "<p class='signature'>" + escapeHtml(AUTHOR) + "</p>";
+  return html;
+}
+
+/* ---------- EXPORT PDF ---------- */
+async function exportPDF(){
+  if(tankOrder.length === 0){
+    alert("⚠️ No tanks to export!");
+    showToast("⚠️ No tanks", "warn");
+    return;
+  }
+
+  const jsPDFLib = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  if(!jsPDFLib || typeof html2canvas === "undefined"){
+    showToast("⚠️ PDF library not loaded — switching to Print", "warn");
+    printReport();
+    return;
+  }
+
+  showLoading("Generating PDF... This may take a few seconds");
+  setStatus("📄 Generating PDF...", "Please wait");
+
+  const box = document.createElement("div");
+  box.className = "pdf-root";
+  box.style.position = "absolute";
+  box.style.left = "-99999px";
+  box.style.top = "0";
+  box.style.width = "1500px";
+  box.style.padding = "24px";
+  box.style.background = "#fff";
+
+  const styleEl = document.createElement("style");
+  styleEl.textContent = REPORT_CSS;
+  box.appendChild(styleEl);
+
+  const contentWrap = document.createElement("div");
+  contentWrap.className = "pdf-root";
+  contentWrap.innerHTML = buildReportBodyHtml();
+  box.appendChild(contentWrap);
+
+  document.body.appendChild(box);
+
+  try{
+    const canvas = await html2canvas(box, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: box.scrollWidth,
+      windowHeight: box.scrollHeight
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const pdf = new jsPDFLib({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    const imgRatio = canvas.width / canvas.height;
+    const pageRatio = pdfWidth / pdfHeight;
+
+    let renderWidth, renderHeight;
+    if(imgRatio > pageRatio){
+      renderWidth = pdfWidth;
+      renderHeight = pdfWidth / imgRatio;
+    } else {
+      renderHeight = pdfHeight;
+      renderWidth = pdfHeight * imgRatio;
+    }
+
+    const offsetX = (pdfWidth - renderWidth) / 2;
+    const offsetY = (pdfHeight - renderHeight) / 2;
+
+    pdf.addImage(imgData, "JPEG", offsetX, offsetY, renderWidth, renderHeight);
+
+    const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g, "").slice(0, 15);
+    const outName = "Manual_Dipping_" + timestamp + ".pdf";
+    pdf.save(outName);
+
+    setStatus("✅ PDF downloaded", outName);
+    showToast("📄 PDF downloaded", "success");
+  } catch(err){
+    console.error("PDF error:", err);
+    showToast("❌ PDF failed — falling back to Print", "error");
+    printReport();
+  } finally {
+    if(box.parentNode) box.parentNode.removeChild(box);
+    hideLoading();
+  }
+}
+
+/* ---------- PRINT ---------- */
+function printReport(){
+  if(tankOrder.length === 0){
+    alert("⚠️ No tanks to print!");
+    showToast("⚠️ No tanks", "warn");
+    return;
+  }
+
+  const bodyHtml = buildReportBodyHtml();
+  const fullHtml = "<!DOCTYPE html><html><head><meta charset='UTF-8'>" +
+    "<title>Manual Dipping Report</title>" +
+    "<style>@page{size:A4 landscape;margin:12mm;}" +
+    "body{margin:0;padding:0;}" + REPORT_CSS + "</style>" +
+    "</head><body><div class='pdf-root'>" + bodyHtml + "</div></body></html>";
 
   let w = null;
   try { w = window.open("", "_blank", "width=1300,height=800,noopener,noreferrer"); } catch(e){ w = null; }
 
   if(w && !w.closed){
-    try {
+    try{
       w.document.open();
-      w.document.write(html);
+      w.document.write(fullHtml);
       w.document.close();
       setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 500);
-      setStatus("✅ PDF preview opened", "Use Print → Save as PDF");
-      showToast("📄 PDF preview ready", "success");
+      setStatus("🖨️ Print window opened", "Choose your printer or Save as PDF");
+      showToast("🖨️ Print preview ready", "success");
     } catch(err){
       console.error(err);
-      fallbackPdfDownload(html);
+      fallbackPrint(fullHtml);
     }
   } else {
-    fallbackPdfDownload(html);
+    fallbackPrint(fullHtml);
   }
 }
 
-function fallbackPdfDownload(html){
+function fallbackPrint(html){
   showToast("⚠️ Pop-up blocked — using iframe", "warn");
   const iframe = document.createElement("iframe");
   iframe.setAttribute("sandbox", "allow-modals allow-popups allow-same-origin");
@@ -2137,15 +2181,13 @@ function fallbackPdfDownload(html){
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
     } catch(e){
-      alert("❌ PDF export failed!\n\nPlease allow pop-ups and try again.");
+      alert("❌ Print failed!\n\nPlease allow pop-ups and try again.");
     }
     setTimeout(() => { document.body.removeChild(iframe); }, 1000);
   }, 400);
 }
 
-/* =========================================================
-   LOAD JSON (with validation)
-   ========================================================= */
+/* ---------- LOAD JSON ---------- */
 function handleJsonFileInput(file){
   if(!file) return;
   if(file.size > MAX_JSON_SIZE){
@@ -2157,10 +2199,7 @@ function handleJsonFileInput(file){
     try{
       const data = safeJsonParse(e.target.result);
       const check = validateDbData(data);
-      if(!check.ok){
-        showToast("❌ " + check.msg, "error");
-        return;
-      }
+      if(!check.ok){ showToast("❌ " + check.msg, "error"); return; }
       if(applyDbObject(data)){
         showToast("✅ Loaded: " + file.name, "success");
         setStatus("JSON loaded", file.name);
@@ -2175,22 +2214,16 @@ function handleJsonFileInput(file){
   reader.readAsText(file);
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
+/* ---------- INIT ---------- */
 async function init(){
-  /* Header field listeners */
   document.getElementById("stationName").addEventListener("input", (e) => {
-    e.target.value = sanitizeInput(e.target.value, 80);
-    scheduleSave();
+    e.target.value = sanitizeInput(e.target.value, 80); scheduleSave();
   });
   document.getElementById("stationCode").addEventListener("input", (e) => {
-    e.target.value = sanitizeInput(e.target.value, 40);
-    scheduleSave();
+    e.target.value = sanitizeInput(e.target.value, 40); scheduleSave();
   });
   document.getElementById("reportDate").addEventListener("input", (e) => {
-    e.target.value = sanitizeInput(e.target.value, 10);
-    scheduleSave();
+    e.target.value = sanitizeInput(e.target.value, 10); scheduleSave();
   });
   document.getElementById("companyNameInput").addEventListener("input", (e) => {
     e.target.value = sanitizeInput(e.target.value, 60);
@@ -2198,7 +2231,6 @@ async function init(){
     scheduleSave();
   });
 
-  /* Logo box */
   document.getElementById("logoBox").addEventListener("click", () => {
     document.getElementById("logoFileInput").click();
   });
@@ -2212,7 +2244,6 @@ async function init(){
   });
   document.getElementById("removeLogoBtn").addEventListener("click", removeLogo);
 
-  /* Data menu */
   document.getElementById("importBtn").addEventListener("click", () => {
     document.getElementById("importFileInput").click();
   });
@@ -2226,11 +2257,10 @@ async function init(){
   document.getElementById("clearBtn").addEventListener("click", clearRows);
   document.getElementById("exitEditBtn").addEventListener("click", exitEditMode);
 
-  /* Export */
   document.getElementById("exportExcelBtn").addEventListener("click", exportExcel);
   document.getElementById("exportPdfBtn").addEventListener("click", exportPDF);
+  document.getElementById("printBtn").addEventListener("click", printReport);
 
-  /* Backup */
   document.getElementById("linkFolderBtn").addEventListener("click", linkBackupFolder);
   document.getElementById("restoreFolderBtn").addEventListener("click", restoreFromFolder);
   document.getElementById("unlinkFolderBtn").addEventListener("click", unlinkFolder);
@@ -2243,17 +2273,14 @@ async function init(){
     e.target.value = "";
   });
 
-  /* Default date */
   document.getElementById("reportDate").value = formatDateDDMMYYYY(new Date());
 
-  /* Empty state */
   charts = {};
   buildTable(null);
   renderHistory();
   updateEditModeUI();
   updateBrandingUI();
 
-  /* Load from IndexedDB */
   let dataLoaded = false;
   try {
     const idbData = await loadFullDataFromIDB();
@@ -2267,7 +2294,6 @@ async function init(){
     }
   } catch(e){ console.warn("IDB load failed:", e); }
 
-  /* Fallback: localStorage */
   if(!dataLoaded){
     const raw = _storageGet(LS_STATE_KEY);
     if(raw){
@@ -2283,7 +2309,6 @@ async function init(){
     }
   }
 
-  /* Auto-restore from backup */
   try { await tryAutoRestore(); } catch(e){ console.warn("Auto-restore error:", e); }
 
   updateDbUi();
@@ -2308,7 +2333,7 @@ async function init(){
     w.textContent = "❌ Excel library failed to load! Check your internet and refresh.";
     setStatus("❌ Excel library not loaded", "Connect to internet and press F5", "var(--RED)");
   } else if(needsReconnect){
-    // status set already
+    // status already set
   } else if(dbDirHandle || dbFileHandle){
     setStatus("✅ Ready — auto-save active", "Backup: " + folderName);
   } else if(dataLoaded){
